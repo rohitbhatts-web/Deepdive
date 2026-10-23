@@ -93,7 +93,7 @@ export function RunPage({ runId, tab, claimId, interval = 2000, onTerminal }: { 
             {research.counts.sources > 0 && <> Collected evidence is preserved: {research.counts.sources} source(s), {research.counts.passages} passages (see the Evidence tab).</>}
           </Notice>
         )}
-        {demo?.runs.find((r) => r.run_id === run.id) && <Notice tone="neutral" title="Recorded run">{demo.runs.find((r) => r.run_id === run.id)?.note}</Notice>}
+        {demo?.runs.find((r) => r.run_id === run.id) && <Notice tone="neutral" title={demo.runs.find((r) => r.run_id === run.id)?.title ?? 'Recorded run'}>{demo.runs.find((r) => r.run_id === run.id)?.note}</Notice>}
         {!demo && failure && failure.title !== 'Collection failed' && <RetryPanel key={`${run.id}-${run.updated_at}`} runId={run.id} onStarted={() => { setRestarts((r) => r + 1); onTerminal?.() }} />}
         {!active && stoppedEarly && (
           <Notice tone="gap" title="Stopped early: results are partial">Reason: {stop ?? 'none recorded'}. Whatever was verified before the stop is kept; requirements that were not addressed are listed as gaps.</Notice>

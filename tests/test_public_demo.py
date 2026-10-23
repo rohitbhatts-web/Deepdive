@@ -43,7 +43,7 @@ def demo(tmp_path, monkeypatch):
 def test_one_origin_serves_the_build_the_api_and_deep_links(demo):
     assert demo.get("/health").json() == {"status": "ok"}
     ready = demo.get("/ready")
-    assert ready.status_code == 200 and ready.json() == {"status": "ready", "runs": 2}
+    assert ready.status_code == 200 and ready.json() == {"status": "ready", "runs": 3, "update_error": None}  # the seed plus the pending update package
     index = demo.get("/")
     assert index.status_code == 200 and "text/html" in index.headers["content-type"] and "DeepDive" in index.text
     for deep in ("/runs/1/report", "/runs/1/evidence", "/runs/2", "/anything/else"):  # refresh on a deep link reaches the client router
@@ -66,11 +66,11 @@ def test_a_path_outside_the_build_is_never_served(demo):
 
 def test_the_api_serves_the_recorded_runs_and_labels_itself_a_demo(demo):
     info = demo.get("/api/demo").json()
-    assert info["read_only"] is True and "Recorded" in info["label"] and {r["run_id"] for r in info["runs"]} == {1, 2} and info["limitations"]
+    assert info["read_only"] is True and "Recorded" in info["label"] and {r["run_id"] for r in info["runs"]} == {1, 2, 3} and info["limitations"]
     health = demo.get("/api/health").json()
     assert health["read_only"] is True and health["mesh_configured"] is False
     runs = demo.get("/api/runs").json()
-    assert runs["total"] == 2
+    assert runs["total"] == 3
     report = demo.get("/api/runs/1/report").json()
     assert report["markdown"] and report["outcome"]
     assert demo.get("/api/docs").status_code == 404 and demo.get("/api/openapi.json").status_code == 404 and demo.get("/docs").status_code in (200, 404)
@@ -86,7 +86,7 @@ def test_every_mutation_of_the_full_api_is_refused_and_nothing_changes(demo):
         assert r.status_code == 403, (method, path, r.status_code)
         assert r.json()["detail"]["error"] == "read_only", (method, path)
     assert demo.post("/api/runs", json={"question": "a new question"}).status_code == 403
-    assert demo.get("/api/runs").json()["total"] == 2
+    assert demo.get("/api/runs").json()["total"] == 3
     assert sha(demo.db_file) == before  # the database file is byte-identical
 
 
@@ -116,7 +116,7 @@ def test_the_seed_publishes_only_cleared_sources_and_markers_stand_in_for_the_re
             withheld += 1
             assert s["snapshot"].startswith("[Text withheld in the public demo")  # URL, title and hash are kept; the text is not
             assert {p["text"].split(":")[0] for p in conn.execute("SELECT text FROM passages WHERE source_id = ?", (s["id"],))} == {"[Text withheld in the public demo"}
-    assert (published, withheld) == (3, 5)
+    assert (published, withheld) == (5, 5)  # run 1: 3 of 8 pages published; the development check adds 2 RFC pages
     for q in conn.execute("SELECT ce.quote, s.final_url FROM claim_evidence ce JOIN passages p ON p.id = ce.passage_id JOIN sources s ON s.id = p.source_id"):
         assert (urlparse(q["final_url"]).netloc in ALLOWED) == (not q["quote"].startswith("[quote withheld"))
     for r in conn.execute("SELECT result_json FROM searches"):
@@ -152,7 +152,7 @@ def test_backup_is_a_consistent_copy_and_never_overwrites(tmp_path):
     target = tmp_path / "deepdive.db"
     seed_mod.ensure_demo_db(target, ROOT / "demo" / "seed.sql.gz")
     out = seed_mod.backup(target, tmp_path / "backups" / "copy.db")
-    assert sqlite3.connect(out).execute("SELECT COUNT(*) FROM runs").fetchone()[0] == 2
+    assert sqlite3.connect(out).execute("SELECT COUNT(*) FROM runs").fetchone()[0] == 2  # the seed alone
     with pytest.raises(FileExistsError):
         seed_mod.backup(target, out)
 

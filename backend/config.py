@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     frontend_dist: str = "frontend/dist"  # the production React build served by backend.public
     demo_info_path: str = "demo/demo_info.json"
     demo_seed_path: str = "demo/seed.sql.gz"
+    demo_updates_dir: str = "demo/updates"  # versioned update packages applied to the persistent demo database at start-up (backend/demo_update.py)
     api_url: str = "http://127.0.0.1:8000"
 
     fetch_connect_timeout: float = 5.0

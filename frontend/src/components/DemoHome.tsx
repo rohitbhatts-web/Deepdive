@@ -23,7 +23,7 @@ export function DemoHome({ info }: { info: DemoInfo }) {
         <ul className="mt-2 space-y-3">
           {info.runs.map((r) => (
             <li key={r.run_id} className="text-sm">
-              <a className="font-medium text-primary underline" href={hrefFor(r.run_id)}>Open run {r.run_id}</a>
+              <a className="font-medium text-primary underline" href={hrefFor(r.run_id)}>Open run {r.run_id}</a>{r.title && <span className="ml-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{r.title}</span>}
               <p className="mt-1 text-muted-foreground">{r.note}</p>
             </li>
           ))}

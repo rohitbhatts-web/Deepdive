@@ -8,6 +8,7 @@
 A single worker, because background jobs of the full application run in-process; the demo itself starts none.
 """
 
+import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -17,6 +18,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from backend import db
 from backend.config import Settings, get_settings
 from backend.demo_seed import ensure_demo_db
+from backend.demo_update import apply_pending
 from backend.main import create_app
 
 HEADERS = {
@@ -36,6 +38,10 @@ def create_public_app(settings: Settings, api: FastAPI | None = None) -> FastAPI
         if not settings.public_read_only:
             raise RuntimeError("backend.public serves the hosted demo and requires PUBLIC_READ_ONLY=1")
         ensure_demo_db(settings.database_path, settings.demo_seed_path)  # creates the database on an empty volume; an existing one is left alone
+        # new recorded runs reach an EXISTING database through versioned, backed-up, duplicate-refusing update packages (backend/demo_update.py)
+        _app.state.updates = apply_pending(settings.database_path, settings.demo_updates_dir, Path(settings.database_path).parent / "backups")
+        if _app.state.updates["error"]:
+            logging.getLogger("uvicorn.error").error("demo update refused (database unchanged): %s", _app.state.updates["error"])
         if not (dist / "index.html").exists():
             raise RuntimeError(f"production frontend build not found at {dist}; run `npm ci && npm run build` in frontend/")
         yield
@@ -55,6 +61,7 @@ def create_public_app(settings: Settings, api: FastAPI | None = None) -> FastAPI
 
     @app.get("/ready", include_in_schema=False)
     def ready():
+        updates = getattr(app.state, "updates", {"applied": [], "skipped": [], "error": None})
         try:
             conn = db.connect(settings.database_path, read_only=True)
             try:
@@ -63,7 +70,7 @@ def create_public_app(settings: Settings, api: FastAPI | None = None) -> FastAPI
                 conn.close()
         except Exception as exc:  # noqa: BLE001 - any failure means "not ready", reported without internals
             return JSONResponse({"status": "not_ready", "reason": type(exc).__name__}, status_code=503)
-        return JSONResponse({"status": "ready", "runs": runs}, status_code=200 if runs else 503)
+        return JSONResponse({"status": "ready", "runs": runs, "update_error": updates["error"]}, status_code=200 if runs else 503)
 
     app.mount("/api", api or create_app(settings))
 

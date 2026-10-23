@@ -99,7 +99,7 @@ def tables(conn) -> list[str]:
     return [r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY rowid")]
 
 
-def build(source: Path, extra: Path | None, runs: list[int] | None) -> tuple[sqlite3.Connection, dict, set]:
+def build(source: Path, extra: Path | None, runs: list[int] | None, more_withheld: tuple[Path, ...] = ()) -> tuple[sqlite3.Connection, dict, set]:
     src = sqlite3.connect(f"file:{source.resolve().as_posix()}?mode=ro", uri=True)
     src.row_factory = sqlite3.Row
     tmp = Path(tempfile.mkdtemp(prefix="deepdive-seed-")) / "seed.db"
@@ -109,6 +109,10 @@ def build(source: Path, extra: Path | None, runs: list[int] | None) -> tuple[sql
 
     withheld_sources = {r["id"]: r for r in src.execute("SELECT * FROM sources") if host(r["final_url"]) not in ALLOWED_HOSTS or host(r["requested_url"]) not in ALLOWED_HOSTS}
     withheld_texts = [r["snapshot"] for r in withheld_sources.values()]
+    for other in more_withheld:  # pages withheld from OTHER demo runs stay withheld here too (nothing of them may surface in this run's text)
+        o = sqlite3.connect(f"file:{other.resolve().as_posix()}?mode=ro", uri=True)
+        withheld_texts += [snap for url, snap in o.execute("SELECT final_url, snapshot FROM sources") if host(url) not in ALLOWED_HOSTS]
+        o.close()
     if extra:
         data = json.loads(extra.read_text(encoding="utf-8"))
         flagged = {"datacamp", "tinybird", "devto", "logz"}

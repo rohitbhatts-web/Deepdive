@@ -266,5 +266,5 @@ export interface DemoInfo {
   notice: string
   withholding: string
   limitations: string[]
-  runs: { run_id: number; note: string }[]
+  runs: { run_id: number; note: string; title?: string }[]
 }

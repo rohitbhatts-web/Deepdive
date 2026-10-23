@@ -16,6 +16,7 @@ from pathlib import Path
 
 from backend import db
 from backend.config import get_settings
+from backend.demo_update import ensure_ledger, run_key
 
 
 def ensure_demo_db(db_path: str | Path, seed_path: str | Path, *, reset: bool = False) -> str:
@@ -32,6 +33,8 @@ def ensure_demo_db(db_path: str | Path, seed_path: str | Path, *, reset: bool = 
     try:
         conn.executescript(gzip.decompress(seed.read_bytes()).decode("utf-8"))
         conn.execute(f"PRAGMA user_version = {db.SCHEMA_VERSION}")
+        conn.row_factory = None
+        ensure_ledger(conn, [run_key(q, c) for q, c in conn.execute("SELECT question, created_at FROM runs ORDER BY id")])  # records '0001-base'
         conn.execute("PRAGMA journal_mode = DELETE")  # a plain file: the read-only connection then needs no -wal/-shm files
         conn.commit()
     finally:

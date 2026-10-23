@@ -1,9 +1,9 @@
 {
   "label": "Recorded demo (read-only)",
-  "notice": "You are looking at recorded runs from DeepDive's development, made on 21-22 October 2026. Nothing here is researched live: this site starts no research, calls no model, search or page fetch, holds no provider key, and cannot be changed. Reports, claims, citations and usage numbers are exactly what those runs stored.",
+  "notice": "You are looking at recorded runs and one recorded development check from DeepDive's development, made on 21-22 October 2026. Nothing here is researched live: this site starts no research, calls no model, search or page fetch, holds no provider key, and cannot be changed. Reports, claims, citations and usage numbers are exactly what those runs stored.",
   "withholding": "Where the rights to redistribute a fetched page are not cleared, the page's URL, title and content hash are shown but its text, the quotes taken from it and its search snippets are replaced by a marker. Text from Wikipedia (CC BY-SA 4.0) and IETF RFCs is shown with its source link.",
   "limitations": [
-    "These are two development runs, not an evaluation of the product's accuracy; the project's evaluation is small and AI-assisted (see the README).",
+    "These are two development runs and one development check, not an evaluation of the product's accuracy; the project's evaluation is small and AI-assisted (see the README).",
     "Reports can be incomplete or empty. An empty or partial report does not show that an answer does not exist.",
     "PDF pages are not supported, and model requests have time limits; failures are recorded rather than hidden.",
     "Relevance and coverage are model judgements. A verdict from an older verifier contract is shown as 'Needs re-judge', not as supported."
@@ -16,6 +16,11 @@
     {
       "run_id": 2,
       "note": "Recorded run, 22 Oct 2026: a private company's reported profit or loss. No usable primary source was found, so the report is empty and labelled 'Insufficient evidence'; PDF search results are unsupported. This does not show that the information does not exist."
+    },
+    {
+      "run_id": 3,
+      "title": "Controlled development check (not a research run)",
+      "note": "Recorded 22 Oct 2026 on stored evidence: one claim, 'The HTTP/2 specification was published as RFC 9113 in June 2022.', and its RFC 9113 passage, checked twice against two different subquestions. Against 'when was the current revision published' the claim is the direct answer; against 'when was the original specification published' it is related context only, the requirement stays open and the report says so. The verifier (rubric attribution-v5) sees only the claim and its evidence; whether a claim answers a requirement is judged separately. The two cases agreed with two expectations written beforehand by the project, which is a development check and not a measure of accuracy. Its 'question' is a label, not a user question, and its status reads 'Collected' with job limits 'Unavailable' because no completion job ran."
     }
   ]
 }

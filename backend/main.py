@@ -57,7 +57,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             return {"read_only": False}
         path = Path(cfg().demo_info_path)
         info = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
-        return {**info, "read_only": True}
+        conn = db.connect(cfg().database_path, read_only=True)
+        try:
+            present = {r[0] for r in conn.execute("SELECT id FROM runs")}
+        finally:
+            conn.close()
+        # only runs that exist in this database are listed (an update that was refused must not leave a dead link)
+        return {**info, "read_only": True, "runs": [r for r in info.get("runs", []) if r["run_id"] in present]}
 
     return app
 

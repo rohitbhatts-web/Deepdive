@@ -23,7 +23,7 @@ Entry point: `uvicorn backend.public:app --workers 1`. One worker, because the f
 Provider credentials never reach the browser: the frontend calls only same-origin `/api/*`, and `MESH_API_KEY` / `TAVILY_API_KEY` are simply not set on the host.
 
 ### The demo data
-`demo/seed.sql.gz` (222 KB, committed) is a sanitized dump of two recorded runs (run 1: HTTP/2 and HTTP/3 RFCs, a partial report; run 2: a private company's profit figure, an empty "insufficient evidence" report). `demo/demo_info.json` holds the labels shown in the UI.
+`demo/seed.sql.gz` (222 KB, committed) is a sanitized dump of the two recorded research runs (the development check is added by an update, below) (run 1: HTTP/2 and HTTP/3 RFCs, a partial report; run 2: a private company's profit figure, an empty "insufficient evidence" report). `demo/demo_info.json` holds the labels shown in the UI.
 `scripts/build_demo_seed.py` makes the seed from a **private** run database; it does not copy that file. It creates a fresh database and inserts rows, applying the same withholding rules as the public evaluation export:
 
 - text is kept only for sources on an allow-list (Wikipedia, IETF RFCs, PostgreSQL documentation; the same sources whose text the public dataset keeps). Run 1 collected 8 pages: 3 are published, **5 are withheld** (the page keeps its URL, title, retrieval date and content hash; its snapshot, passages, the quotes taken from it and its search snippets become a marker);
@@ -33,6 +33,33 @@ Provider credentials never reach the browser: the frontend calls only same-origi
 
 Recorded runs are labelled in the UI (banner on every page, a note on each run) with their real limitations: run 1's report is partial and was assembled before answer-relevance judging existed ("not judged"), run 2's is empty.
 Checked on the running server: all 44 GET endpoints of both runs (reports, claims, passages, sources, searches, events, usage) contain no phrase from a withheld page.
+
+## Updating the persistent demo database (versioned, backed up, duplicate-refusing)
+
+The deployed database lives on the volume and is **never rebuilt from the seed**, so changing `demo/seed.sql.gz` does not change a running deployment. New recorded runs reach it through an **update package** in `demo/updates/` (`<id>.json.gz`, applied in id order):
+
+| Package | Adds |
+|---|---|
+| `0002-a1a2-v5` | run 3, the recorded A1/A2 verifier-attribution-v5 development check: one claim checked twice against two subquestions (direct answer for the current revision, related context and an open requirement for the original publication). Labelled "Controlled development check (not a research run)"; its text-bearing sources are the two RFC 9113 passages. |
+
+`scripts/build_demo_update.py` builds a package from a private run database. It applies the same sanitization as the seed, shifts every id past the base seed's (so existing runs keep their ids and nothing collides), rewrites passage ids and id-valued JSON keys, and refuses to build if an id-like key is unknown or anything withheld remains.
+`backend/demo_update.py` applies it, at **start-up** of `backend.public` (before the read-only server begins serving; there is no HTTP path to trigger it) or by hand:
+
+```bash
+python -m backend.demo_update --status                     # the ledger: which updates are applied
+python -m backend.demo_update --dry-run                    # check every package, write nothing
+python -m backend.demo_update --apply demo/updates/0002-a1a2-v5.json.gz --backup-dir /data/backups
+```
+
+What it guarantees, each covered by `tests/test_demo_update.py`:
+1. **Backup first:** a consistent SQLite backup (`/data/backups/deepdive-before-<id>-<UTC>.db`, never overwritten) is written and checked (integrity, same runs) before any change.
+2. **One transaction:** foreign keys enforced, primary-key collisions refused, any failure rolls everything back. A database from before the ledger existed is recognised as the base seed and gets a ledger.
+3. **Existing runs are untouched:** every row present before is present afterwards, byte for byte.
+4. **Duplicates are refused**, twice over: by the ledger (`demo_updates`, id already applied) and by content (a run with the same question and creation time exists, so a lost ledger or a restored older backup cannot import it again). A package built for a different database (other base runs, other schema version) is refused. The restart that follows every deploy finds the update already applied and does nothing.
+5. **A refused update never takes the demo down:** the server keeps serving what it has, logs the reason, and `/ready` carries it in `update_error`; `/api/demo` lists only runs that exist, so no link to a missing run appears.
+
+A new volume is seeded and then updated the same way, and reaches identical data and ids (tested). To publish another run: build its package with the next id, commit it under `demo/updates/`, add its note to `demo/demo_info.json`, and redeploy; the start-up applies it once.
+Rollback: stop the service, restore the backup file over `deepdive.db` (the ledger then no longer lists the update), and remove the package from the image before the next start, or it will be applied again.
 
 ## Run it locally (production mode)
 

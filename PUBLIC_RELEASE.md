@@ -76,7 +76,7 @@ After withholding the claim text of CE04 and CE10, a scan of every tracked file 
 
 The hosted recorded demo (`docs/HOSTING.md`) is seeded from `demo/seed.sql.gz`, a sanitized dump of two recorded runs. It is not a copy of a private run database: `scripts/build_demo_seed.py` inserts rows into a fresh database and, for every source outside an allow-list
 (Wikipedia, IETF RFCs, PostgreSQL documentation), replaces the page text, its passages, the quotes taken from it and its search snippets by a marker, keeping URL, title, retrieval date and content hash. The four rights-reserved evaluation sources are withheld there too.
-The seed is a gzip SQL dump, not a `.db` file. Its text, and every GET response of the running demo, contain no phrase of six or more words from a withheld page (the remaining five-word overlap is a URL fragment).
+The development-check update `demo/updates/0002-a1a2-v5.json.gz` (a gzip JSON package, 4 KB) is sanitized the same way; its only text-bearing sources are two RFC 9113 passages. The seed and the package are gzip files, not `.db` files. Its text, and every GET response of the running demo, contain no phrase of six or more words from a withheld page (the remaining five-word overlap is a URL fragment).
 
 ## How this export was checked
 

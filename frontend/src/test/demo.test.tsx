@@ -10,7 +10,7 @@ afterEach(() => { cleanup(); vi.useRealTimers(); window.location.hash = '' })
 
 const DEMO: DemoInfo = {
   read_only: true, label: 'Recorded demo (read-only)', notice: 'Recorded runs; nothing is researched live.', withholding: 'Uncleared page text is replaced by a marker.',
-  limitations: ['Reports can be incomplete or empty.'], runs: [{ run_id: 7, note: 'Recorded run: a partial report.' }],
+  limitations: ['Reports can be incomplete or empty.'], runs: [{ run_id: 7, note: 'Recorded run: a partial report.' }, { run_id: 8, title: 'Controlled development check (not a research run)', note: 'A development check on stored evidence.' }],
 }
 const REASON = "drafter failed: Mesh call failed for model 'm': APITimeoutError: Request timed out. (request timeout 60s)"
 const failedRun = { ...RUN, id: 7, status: 'collection_finished', verify_status: 'failed', complete_status: 'failed', report_outcome: null, stop_reason: null }
@@ -35,6 +35,7 @@ describe('read-only demo', () => {
     expect(screen.getByLabelText('About this demo')).toHaveTextContent('recorded development runs, not live research')
     expect(screen.getByRole('link', { name: /Open run 7/ })).toHaveAttribute('href', '#/runs/7/report')
     expect(screen.getByText('Reports can be incomplete or empty.')).toBeInTheDocument()
+    expect(screen.getByText('Controlled development check (not a research run)')).toBeInTheDocument() // a development check is labelled as one, not as research
     expect(screen.queryByLabelText('Research question')).toBeNull()
     expect(screen.queryByRole('button', { name: /Start research/ })).toBeNull()
     expect(screen.getAllByRole('link', { name: /About this demo/ }).length).toBeGreaterThanOrEqual(2) // the banner and the sidebar entry
