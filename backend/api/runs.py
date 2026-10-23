@@ -20,7 +20,8 @@ Stripped = StringConstraints(strip_whitespace=True)
 
 
 def get_db() -> Iterator[sqlite3.Connection]:
-    conn = db.connect(get_settings().database_path, cross_thread=True)
+    settings = get_settings()
+    conn = db.connect(settings.database_path, cross_thread=True, read_only=settings.public_read_only)
     try:
         yield conn
     finally:

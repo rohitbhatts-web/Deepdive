@@ -72,6 +72,12 @@ Derived statistics that were computed on the full dataset (for example `evaluati
 After withholding the claim text of CE04 and CE10, a scan of every tracked file for word runs shared with the nine original passages finds none of six words or more. Runs of five words remain in three places, all in short claim or rationale text written for the dataset
 (for example a five-word phrase shared with the DEV or Tinybird pages), and phrases of four words or fewer ("Postgres locally via Docker") occur in claims, rationales and tests. These are our own words and are kept.
 
+## Hosted demo data
+
+The hosted recorded demo (`docs/HOSTING.md`) is seeded from `demo/seed.sql.gz`, a sanitized dump of two recorded runs. It is not a copy of a private run database: `scripts/build_demo_seed.py` inserts rows into a fresh database and, for every source outside an allow-list
+(Wikipedia, IETF RFCs, PostgreSQL documentation), replaces the page text, its passages, the quotes taken from it and its search snippets by a marker, keeping URL, title, retrieval date and content hash. The four rights-reserved evaluation sources are withheld there too.
+The seed is a gzip SQL dump, not a `.db` file. Its text, and every GET response of the running demo, contain no phrase of six or more words from a withheld page (the remaining five-word overlap is a URL fragment).
+
 ## How this export was checked
 
 A scan of every tracked file for word runs shared with the nine original passages (run before publication) found no run of six words or more. The tree and its history contain no databases, logs, `.env` files, secrets or local absolute paths.

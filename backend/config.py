@@ -23,6 +23,11 @@ class Settings(BaseSettings):
     mesh_timeout: float = 60.0  # seconds per model request; the SDK default of 600s would outlast any run budget
     min_call_seconds: float = 10.0  # a model request is not started with less job time than this left (it could not finish before the deadline)
     database_path: str = "data/deepdive.db"
+    # Hosted recorded demo (see docs/HOSTING.md). When true the backend refuses every mutation, opens SQLite read-only and builds no provider client.
+    public_read_only: bool = False
+    frontend_dist: str = "frontend/dist"  # the production React build served by backend.public
+    demo_info_path: str = "demo/demo_info.json"
+    demo_seed_path: str = "demo/seed.sql.gz"
     api_url: str = "http://127.0.0.1:8000"
 
     fetch_connect_timeout: float = 5.0

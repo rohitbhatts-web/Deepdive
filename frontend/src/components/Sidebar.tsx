@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils'
 import { Pill } from './bits'
 
 /** Dark charcoal navigation: New research plus the real recent runs from GET /runs (newest first). */
-export function Sidebar({ activeRunId, version, onNavigate }: { activeRunId: number | null; version: number; onNavigate?: () => void }) {
+export function Sidebar({ activeRunId, version, onNavigate, readOnly = false }: { activeRunId: number | null; version: number; onNavigate?: () => void; readOnly?: boolean }) {
   const runs = useResource<RunPage>('/runs?limit=30', version)
   const anyActive = runs.data?.items.some(isRunActive) ?? false
   const { reload } = runs
@@ -28,13 +28,13 @@ export function Sidebar({ activeRunId, version, onNavigate }: { activeRunId: num
         onClick={onNavigate}
         className="flex items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:brightness-110"
       >
-        <Plus aria-hidden className="size-4" /> New research
+        <Plus aria-hidden className="size-4" /> {readOnly ? 'About this demo' : 'New research'}
       </a>
       <div className="min-h-0 flex-1 overflow-y-auto">
         <h2 className="px-1 pb-2 text-xs font-semibold uppercase tracking-wider text-sidebar-muted">Recent runs</h2>
         {runs.loading && !runs.data && <p role="status" className="px-1 text-sm text-sidebar-muted">Loading…</p>}
         {runs.error && <p role="alert" className="px-1 text-sm text-red-300">Could not load runs: {runs.error.message}</p>}
-        {runs.data && runs.data.items.length === 0 && <p className="px-1 text-sm text-sidebar-muted">No runs yet. Start one with New research.</p>}
+        {runs.data && runs.data.items.length === 0 && <p className="px-1 text-sm text-sidebar-muted">{readOnly ? 'No recorded runs.' : 'No runs yet. Start one with New research.'}</p>}
         <ul className="space-y-1.5">
           {runs.data?.items.map((r) => {
             const st = runStatusLabel(r)

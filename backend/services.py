@@ -8,6 +8,7 @@ from backend import db
 from backend.config import Settings, get_settings
 from backend.llm import LLM
 from backend.mesh_client import get_mesh_async_client, get_mesh_client
+from backend.readonly import ReadOnlyError
 from backend.search import SearchProvider, TavilySearch
 from backend.web import Fetcher
 
@@ -73,6 +74,8 @@ def check_models(catalog: dict[str, dict], wanted: set[str]) -> None:
 def build_services(settings: Settings | None = None, mode: str = "collect") -> ResearchServices:
     """Real services. Raises ConfigurationError if anything needed is missing or a model is unavailable."""
     settings = settings or get_settings()
+    if settings.public_read_only:
+        raise ReadOnlyError("public read-only deployment: research services are never built")
     missing = missing_configuration(settings, mode)
     if missing:
         raise ConfigurationError(f"Missing configuration: {', '.join(missing)}. Set them in .env.", missing)

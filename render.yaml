@@ -1,0 +1,21 @@
+# Render Blueprint for the hosted RECORDED demo (read-only; no provider keys). Nothing is deployed until you create the Blueprint in Render.
+# One Docker web service, ONE instance (a persistent disk allows no more), SQLite on a 1 GB disk mounted at /data.
+services:
+  - type: web
+    name: deepdive-demo
+    runtime: docker
+    plan: starter
+    region: oregon
+    numInstances: 1
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /ready
+    autoDeployTrigger: "off"
+    disk:
+      name: deepdive-data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: PUBLIC_READ_ONLY
+        value: "1"
+      - key: DATABASE_PATH
+        value: /data/deepdive.db

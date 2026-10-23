@@ -258,3 +258,13 @@ export interface ModelCall {
   completion_tokens: number | null
   total_tokens: number | null
 }
+
+/** GET /demo. `read_only` is true only for the hosted recorded demo; the other fields exist then. */
+export interface DemoInfo {
+  read_only: boolean
+  label: string
+  notice: string
+  withholding: string
+  limitations: string[]
+  runs: { run_id: number; note: string }[]
+}

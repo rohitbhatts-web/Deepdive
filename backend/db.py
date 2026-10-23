@@ -137,10 +137,18 @@ def utcnow() -> str:
     return datetime.now(UTC).isoformat(timespec="seconds")
 
 
-def connect(path: str | Path, *, cross_thread: bool = False) -> sqlite3.Connection:
+def connect(path: str | Path, *, cross_thread: bool = False, read_only: bool = False) -> sqlite3.Connection:
     """Open a connection with foreign keys on and the schema initialised (idempotent). `cross_thread` is for a per-request
     connection that FastAPI sets up, uses and closes in different worker threads (one request at a time, never shared)."""
     path = Path(path)
+    if read_only:  # public demo: SQLite itself refuses any write; the schema must already be current (it is created by the seed step)
+        conn = sqlite3.connect(f"file:{path.resolve().as_posix()}?mode=ro", uri=True, isolation_level=None, check_same_thread=not cross_thread)
+        conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA foreign_keys = ON")
+        if conn.execute("PRAGMA user_version").fetchone()[0] < SCHEMA_VERSION:
+            conn.close()
+            raise RuntimeError(f"{path} has an older schema than this code ({SCHEMA_VERSION}); read-only mode cannot upgrade it")
+        return conn
     path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(path, isolation_level=None, check_same_thread=not cross_thread)  # transactions are explicit, see tx()
     conn.row_factory = sqlite3.Row

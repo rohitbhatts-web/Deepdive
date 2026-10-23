@@ -1,0 +1,21 @@
+{
+  "label": "Recorded demo (read-only)",
+  "notice": "You are looking at recorded runs from DeepDive's development, made on 21-22 October 2026. Nothing here is researched live: this site starts no research, calls no model, search or page fetch, holds no provider key, and cannot be changed. Reports, claims, citations and usage numbers are exactly what those runs stored.",
+  "withholding": "Where the rights to redistribute a fetched page are not cleared, the page's URL, title and content hash are shown but its text, the quotes taken from it and its search snippets are replaced by a marker. Text from Wikipedia (CC BY-SA 4.0) and IETF RFCs is shown with its source link.",
+  "limitations": [
+    "These are two development runs, not an evaluation of the product's accuracy; the project's evaluation is small and AI-assisted (see the README).",
+    "Reports can be incomplete or empty. An empty or partial report does not show that an answer does not exist.",
+    "PDF pages are not supported, and model requests have time limits; failures are recorded rather than hidden.",
+    "Relevance and coverage are model judgements. A verdict from an older verifier contract is shown as 'Needs re-judge', not as supported."
+  ],
+  "runs": [
+    {
+      "run_id": 1,
+      "note": "Recorded run, 22 Oct 2026: when HTTP/2 and HTTP/3 were published as RFCs and how their transport layers differ. The best report this run produced is partial (it lacks the HTTP/3 RFC date and a direct statement of HTTP/2's transport). It was assembled before answer-relevance judging existed, so it is labelled 'not judged'. The text of 5 of the 8 collected pages is withheld here."
+    },
+    {
+      "run_id": 2,
+      "note": "Recorded run, 22 Oct 2026: a private company's reported profit or loss. No usable primary source was found, so the report is empty and labelled 'Insufficient evidence'; PDF search results are unsupported. This does not show that the information does not exist."
+    }
+  ]
+}

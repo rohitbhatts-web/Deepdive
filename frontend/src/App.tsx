@@ -4,10 +4,17 @@ import { NewResearch } from '@/components/NewResearch'
 import { RunPage } from '@/components/RunPage'
 import { Sidebar } from '@/components/Sidebar'
 import { Button } from '@/components/ui/button'
+import { DemoBanner, DemoHome } from '@/components/DemoHome'
+import { DemoProvider, useDemo } from '@/hooks/useDemo'
 import { hrefFor, useRoute } from '@/lib/route'
 
 export default function App() {
+  return <DemoProvider><Shell /></DemoProvider>
+}
+
+function Shell() {
   const route = useRoute()
+  const { ready, info: demo } = useDemo()
   const [menu, setMenu] = useState(false) // narrow screens: the sidebar becomes a drawer opened from the top bar
   const [sidebarVersion, setSidebarVersion] = useState(0) // bump to refresh the recent-runs list after a start
   const refreshSidebar = useCallback(() => setSidebarVersion((v) => v + 1), [])
@@ -22,10 +29,13 @@ export default function App() {
         </Button>
       </header>
       <div id="sidebar" className={`${menu ? 'block' : 'hidden'} md:sticky md:top-0 md:block md:h-screen`}>
-        <Sidebar activeRunId={runId} version={sidebarVersion * 100000 + (runId ?? 0)} onNavigate={() => setMenu(false)} />
+        <Sidebar activeRunId={runId} version={sidebarVersion * 100000 + (runId ?? 0)} onNavigate={() => setMenu(false)} readOnly={demo !== null} />
       </div>
       <main id="main" className="min-w-0">
-        {route.page === 'new' ? (
+        {demo && <DemoBanner info={demo} />}
+        {route.page === 'new' && !ready ? null : route.page === 'new' && demo ? (
+          <DemoHome info={demo} />
+        ) : route.page === 'new' ? (
           <NewResearch onStarted={(id) => { setSidebarVersion((v) => v + 1); window.location.hash = hrefFor(id).slice(1) }} />
         ) : (
           <RunPage key={route.runId} runId={route.runId} tab={route.tab} claimId={route.claimId} onTerminal={refreshSidebar} />

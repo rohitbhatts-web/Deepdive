@@ -43,6 +43,12 @@ cd frontend && npm run dev                   # React UI on http://localhost:5173
 
 `ui/app.py` is a minimal legacy Streamlit health page (`uv run streamlit run ui/app.py`); the React frontend is the interface.
 
+## Hosted recorded demo (read-only)
+
+`backend.public` serves the production React build and the API from one origin, with one worker, SQLite on a volume and **every write refused** (research, retry, verify, complete, sources); it holds no provider key and starts nothing live.
+It shows two recorded development runs, labelled as such, from a sanitized seed (`demo/seed.sql.gz`) in which pages whose redistribution rights are not cleared appear as a marker. Instructions, health checks, volume and backup: [docs/HOSTING.md](docs/HOSTING.md).
+A `Dockerfile` and a Render `render.yaml` are prepared; nothing is deployed.
+
 ## Checks
 
 ```bash

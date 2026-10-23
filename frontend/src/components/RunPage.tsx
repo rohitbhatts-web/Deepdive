@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { get } from '@/api/client'
 import type { Completion, ResearchStatus, RunEvent, RunSummary } from '@/api/types'
 import { usePolling } from '@/hooks/useApi'
+import { useDemo } from '@/hooks/useDemo'
 import { failureNotice, isRunActive, runStatusLabel } from '@/lib/claimState'
 import { hrefFor, TABS, type Tab } from '@/lib/route'
 import { cn } from '@/lib/utils'
@@ -41,6 +42,7 @@ export function latestJobRequests(c: Completion): string {
 
 export function RunPage({ runId, tab, claimId, interval = 2000, onTerminal }: { runId: number; tab: Tab; claimId: number | null; interval?: number; onTerminal?: () => void }) {
   const [restarts, setRestarts] = useState(0) // bumped when a confirmed retry starts, so polling begins again for the new job
+  const { info: demo } = useDemo()
   const live = usePolling<Live>(`run-${runId}-${restarts}`, (signal) => loadLive(runId, signal), (d) => !isRunActive(d.run), interval)
   const { data, error } = live
   const finished = data ? !isRunActive(data.run) : false
@@ -91,7 +93,8 @@ export function RunPage({ runId, tab, claimId, interval = 2000, onTerminal }: { 
             {research.counts.sources > 0 && <> Collected evidence is preserved: {research.counts.sources} source(s), {research.counts.passages} passages (see the Evidence tab).</>}
           </Notice>
         )}
-        {failure && failure.title !== 'Collection failed' && <RetryPanel key={`${run.id}-${run.updated_at}`} runId={run.id} onStarted={() => { setRestarts((r) => r + 1); onTerminal?.() }} />}
+        {demo?.runs.find((r) => r.run_id === run.id) && <Notice tone="neutral" title="Recorded run">{demo.runs.find((r) => r.run_id === run.id)?.note}</Notice>}
+        {!demo && failure && failure.title !== 'Collection failed' && <RetryPanel key={`${run.id}-${run.updated_at}`} runId={run.id} onStarted={() => { setRestarts((r) => r + 1); onTerminal?.() }} />}
         {!active && stoppedEarly && (
           <Notice tone="gap" title="Stopped early: results are partial">Reason: {stop ?? 'none recorded'}. Whatever was verified before the stop is kept; requirements that were not addressed are listed as gaps.</Notice>
         )}
