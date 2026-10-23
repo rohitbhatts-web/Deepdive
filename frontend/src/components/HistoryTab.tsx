@@ -1,6 +1,6 @@
 import { ArrowRight } from 'lucide-react'
 import { useState } from 'react'
-import type { CorrectionRound, Corrections, RunEvent, RunSummary, SearchRow } from '@/api/types'
+import type { Completion, CorrectionRound, Corrections, RunEvent, RunSummary, SearchRow } from '@/api/types'
 import { useResource } from '@/hooks/useApi'
 import type { StateIcon, Tone } from '@/lib/claimState'
 import { eventDetail, eventLabel, STAGE_LABEL } from '@/lib/events'
@@ -8,6 +8,7 @@ import { hrefFor } from '@/lib/route'
 import { cn } from '@/lib/utils'
 import { CountChips, Empty, ErrorBox, Loading, Panel, Pill, SafeLink, SectionHeading, when } from './bits'
 import { ClaimPill } from './Inspector'
+import { LifecycleDetail } from './Lifecycle'
 
 const GROUPS: { key: string; label: string; test: (e: RunEvent) => boolean }[] = [
   { key: 'all', label: 'All events', test: () => true },
@@ -77,7 +78,7 @@ function Round({ runId, r }: { runId: number; r: CorrectionRound }) {
   )
 }
 
-export function HistoryTab({ run, events, version }: { run: RunSummary; events: RunEvent[]; version: number }) {
+export function HistoryTab({ run, events, version, completion }: { run: RunSummary; events: RunEvent[]; version: number; completion?: Completion | null }) {
   const searches = useResource<SearchRow[]>(`/runs/${run.id}/searches`, version)
   const corr = useResource<Corrections>(`/runs/${run.id}/corrections`, version)
   const [group, setGroup] = useState('all')
@@ -86,6 +87,7 @@ export function HistoryTab({ run, events, version }: { run: RunSummary; events: 
   const shown = events.filter(test)
   return (
     <div className="space-y-8">
+      {completion !== undefined && <LifecycleDetail run={run} events={events} completion={completion} />}
       <section aria-labelledby="corr-h" className="space-y-3">
         <SectionHeading id="corr-h" description="What each corrective round planned and did, and the coverage assessed before and after it.">Corrections</SectionHeading>
         {corr.loading && !corr.data && <Loading label="Loading corrections" blocks={2} />}

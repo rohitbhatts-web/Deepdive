@@ -91,14 +91,14 @@ export function Inspector({ runId, claimId, highlight, onClose }: { runId: numbe
               <p className="text-sm text-muted-foreground">{state.explain}</p>
               {claim.superseded_by && <Notice tone="gap" title="Superseded">A newer version exists: <a className="underline" href={hrefFor(runId, 'evidence', claim.superseded_by)}>claim {claim.superseded_by}</a>.</Notice>}
               <p className="whitespace-pre-wrap break-words text-base font-medium leading-snug">{claim.text}</p>
+              <h3 className="pt-1 text-sm font-semibold">Cited evidence</h3>
+              {claim.evidence.length === 0 ? <p className="text-sm text-muted-foreground">This claim cites no evidence.</p> : (
+                <ul className="space-y-2">{[...claim.evidence].sort((a, b) => Number(b.passage_id === highlight) - Number(a.passage_id === highlight)).map((ev) => <EvidenceItem key={ev.id} ev={ev} highlighted={ev.passage_id === highlight} />)}</ul>
+              )}
               <Result title="Integrity check" r={claim.integrity} />
               <Result title="Semantic verdict" r={claim.semantic} />
               {claim.semantic_verdict === null && claim.integrity_verdict === 'passed' && <Notice title="No semantic verdict stored">The verifier has not judged this claim.</Notice>}
               {relied.length > 0 && <p className="text-sm">Also relied on (neighbouring passages, not cited by the claim): {relied.map((p) => p.passage_id).join(', ')}</p>}
-              <h3 className="pt-1 text-sm font-semibold">Cited evidence</h3>
-              {claim.evidence.length === 0 ? <p className="text-sm text-muted-foreground">This claim cites no evidence.</p> : (
-                <ul className="space-y-2">{claim.evidence.map((ev) => <EvidenceItem key={ev.id} ev={ev} highlighted={ev.passage_id === highlight} />)}</ul>
-              )}
               <details className="rounded-lg border bg-card px-3 py-2 text-sm">
                 <summary className="cursor-pointer font-semibold">Provenance and result history</summary>
                 <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5">

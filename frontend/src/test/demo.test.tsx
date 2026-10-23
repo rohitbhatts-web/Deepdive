@@ -1,5 +1,5 @@
 // The hosted recorded demo: banner, no way to start work, per-run labels. FIXTURES only; nothing here talks to a backend.
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from '@/App'
 import { RunPage } from '@/components/RunPage'
@@ -33,7 +33,7 @@ describe('read-only demo', () => {
     render(<App />)
     expect(await screen.findByRole('heading', { name: 'DeepDive: recorded demo' })).toBeInTheDocument()
     expect(screen.getByLabelText('About this demo')).toHaveTextContent('recorded development runs, not live research')
-    expect(screen.getByRole('link', { name: /Open run 7/ })).toHaveAttribute('href', '#/runs/7/report')
+    expect(screen.getByRole('link', { name: /Open run 7/ })).toHaveAttribute('href', '#/runs/7/overview')
     expect(screen.getByText('Reports can be incomplete or empty.')).toBeInTheDocument()
     expect(screen.getByText('Controlled development check (not a research run)')).toBeInTheDocument() // a development check is labelled as one, not as research
     expect(screen.queryByLabelText('Research question')).toBeNull()
@@ -60,6 +60,17 @@ describe('read-only demo', () => {
     expect(await screen.findByText('Drafting failed after collection finished')).toBeInTheDocument()
     expect(screen.getByText('Recorded run: a partial report.')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Retry/ })).toBeNull()
+  })
+
+  it('the recorded-run note can be expanded on narrow screens and is always in the page', async () => {
+    window.location.hash = '#/runs/7'
+    stubFetch({ '/demo': DEMO, ...runPage })
+    render(<App />)
+    const toggle = await screen.findByRole('button', { name: 'Read the full note' })
+    expect(toggle).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.getByText('Recorded run: a partial report.')).toBeInTheDocument()
+    fireEvent.click(toggle)
+    expect(screen.getByRole('button', { name: 'Show less' })).toHaveAttribute('aria-expanded', 'true')
   })
 
   it('without the demo flag the same failed run still offers the explicit retry panel', async () => {

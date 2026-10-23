@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-export const TABS = ['report', 'evidence', 'coverage', 'history', 'usage'] as const
+export const TABS = ['overview', 'report', 'evidence', 'coverage', 'history', 'usage'] as const
 export type Tab = (typeof TABS)[number]
 
 export type Route = { page: 'new' } | { page: 'run'; runId: number; tab: Tab; claimId: number | null }
@@ -10,12 +10,12 @@ export function parseHash(hash: string): Route {
   const [path, query = ''] = hash.replace(/^#/, '').split('?')
   const m = /^\/runs\/(\d+)(?:\/([a-z]+))?$/.exec(path)
   if (!m) return { page: 'new' }
-  const tab = (TABS as readonly string[]).includes(m[2] ?? '') ? (m[2] as Tab) : 'report'
+  const tab = (TABS as readonly string[]).includes(m[2] ?? '') ? (m[2] as Tab) : 'overview'
   const claim = new URLSearchParams(query).get('claim')
   return { page: 'run', runId: Number(m[1]), tab, claimId: claim && /^\d+$/.test(claim) ? Number(claim) : null }
 }
 
-export function hrefFor(runId: number, tab: Tab = 'report', claimId?: number | null): string {
+export function hrefFor(runId: number, tab: Tab = 'overview', claimId?: number | null): string {
   return `#/runs/${runId}/${tab}${claimId ? `?claim=${claimId}` : ''}`
 }
 
