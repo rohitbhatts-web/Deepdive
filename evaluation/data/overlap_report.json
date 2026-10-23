@@ -1,0 +1,204 @@
+{
+ "scope": "single_domain_database_evidence",
+ "statement": "This claim set is single-domain (SQLite/PostgreSQL evidence). It is not a cross-domain evaluation. Its held-out examples reuse sources and, in many cases, passages that development examples use.",
+ "heldout_examples": 10,
+ "sources_retrieved_by_development_runs": {
+  "sources": 6,
+  "of_total": 6,
+  "heldout_sources_among_them": 5
+ },
+ "heldout_with_source_also_in_dev": 7,
+ "heldout_with_passage_also_in_dev": 6,
+ "heldout_with_passage_cited_by_earlier_development_run_claims": 1,
+ "distinct_sources": {
+  "total": 6,
+  "in_heldout": 5,
+  "only_in_heldout": [
+   "devto"
+  ]
+ },
+ "distinct_passages": {
+  "total": 23,
+  "in_dev": 20,
+  "in_heldout": 9,
+  "only_in_heldout": [
+   "devto:P2",
+   "devto:P4",
+   "wikipedia_sqlite:P8"
+  ]
+ },
+ "per_heldout_example": [
+  {
+   "example": "CE05",
+   "sources": [
+    "wikipedia_sqlite"
+   ],
+   "passages": [
+    "wikipedia_sqlite:P14"
+   ],
+   "source_also_in_dev": [
+    "wikipedia_sqlite"
+   ],
+   "passage_also_in_dev": [
+    "wikipedia_sqlite:P14"
+   ],
+   "dev_examples_citing_same_passage": [
+    "CE20"
+   ],
+   "passage_cited_by_earlier_development_run_claims": false
+  },
+  {
+   "example": "CE09",
+   "sources": [
+    "devto"
+   ],
+   "passages": [
+    "devto:P2"
+   ],
+   "source_also_in_dev": [],
+   "passage_also_in_dev": [],
+   "dev_examples_citing_same_passage": [],
+   "passage_cited_by_earlier_development_run_claims": false
+  },
+  {
+   "example": "CE14",
+   "sources": [
+    "tinybird"
+   ],
+   "passages": [
+    "tinybird:P21"
+   ],
+   "source_also_in_dev": [
+    "tinybird"
+   ],
+   "passage_also_in_dev": [
+    "tinybird:P21"
+   ],
+   "dev_examples_citing_same_passage": [
+    "CE35"
+   ],
+   "passage_cited_by_earlier_development_run_claims": false
+  },
+  {
+   "example": "CE17",
+   "sources": [
+    "devto"
+   ],
+   "passages": [
+    "devto:P4"
+   ],
+   "source_also_in_dev": [],
+   "passage_also_in_dev": [],
+   "dev_examples_citing_same_passage": [],
+   "passage_cited_by_earlier_development_run_claims": false
+  },
+  {
+   "example": "CE19",
+   "sources": [
+    "wikipedia_sqlite"
+   ],
+   "passages": [
+    "wikipedia_sqlite:P8"
+   ],
+   "source_also_in_dev": [
+    "wikipedia_sqlite"
+   ],
+   "passage_also_in_dev": [],
+   "dev_examples_citing_same_passage": [],
+   "passage_cited_by_earlier_development_run_claims": false
+  },
+  {
+   "example": "CE22",
+   "sources": [
+    "postgresql_docs"
+   ],
+   "passages": [
+    "postgresql_docs:P3"
+   ],
+   "source_also_in_dev": [
+    "postgresql_docs"
+   ],
+   "passage_also_in_dev": [
+    "postgresql_docs:P3"
+   ],
+   "dev_examples_citing_same_passage": [
+    "CE37"
+   ],
+   "passage_cited_by_earlier_development_run_claims": true
+  },
+  {
+   "example": "CE27",
+   "sources": [
+    "logz"
+   ],
+   "passages": [
+    "logz:P4"
+   ],
+   "source_also_in_dev": [
+    "logz"
+   ],
+   "passage_also_in_dev": [
+    "logz:P4"
+   ],
+   "dev_examples_citing_same_passage": [
+    "CE18"
+   ],
+   "passage_cited_by_earlier_development_run_claims": false
+  },
+  {
+   "example": "CE29",
+   "sources": [
+    "wikipedia_sqlite"
+   ],
+   "passages": [
+    "wikipedia_sqlite:P16"
+   ],
+   "source_also_in_dev": [
+    "wikipedia_sqlite"
+   ],
+   "passage_also_in_dev": [
+    "wikipedia_sqlite:P16"
+   ],
+   "dev_examples_citing_same_passage": [
+    "CE01",
+    "CE16",
+    "CE39",
+    "CE40"
+   ],
+   "passage_cited_by_earlier_development_run_claims": false
+  },
+  {
+   "example": "CE33",
+   "sources": [
+    "devto"
+   ],
+   "passages": [
+    "devto:P4"
+   ],
+   "source_also_in_dev": [],
+   "passage_also_in_dev": [],
+   "dev_examples_citing_same_passage": [],
+   "passage_cited_by_earlier_development_run_claims": false
+  },
+  {
+   "example": "CE38",
+   "sources": [
+    "wikipedia_sqlite"
+   ],
+   "passages": [
+    "wikipedia_sqlite:P6"
+   ],
+   "source_also_in_dev": [
+    "wikipedia_sqlite"
+   ],
+   "passage_also_in_dev": [
+    "wikipedia_sqlite:P6"
+   ],
+   "dev_examples_citing_same_passage": [
+    "CE23"
+   ],
+   "passage_cited_by_earlier_development_run_claims": false
+  }
+ ],
+ "consequence": "A verifier tuned on development examples has seen the same pages (and often the same passages) as the held-out claims. A good held-out score therefore supports 'the verifier handles new CLAIMS about familiar sources', not 'it generalises to new sources or domains'. Independence for sources comes only from end-to-end questions Q09-Q12, whose sources are found by live search."
+}

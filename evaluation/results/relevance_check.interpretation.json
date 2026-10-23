@@ -1,0 +1,220 @@
+{
+ "schema": "deepdive-relevance-check-interpretation/1",
+ "applies_to": "evaluation/results/relevance_check.json (unchanged)",
+ "domains": [
+  {
+   "domain": "networking",
+   "cases": [
+    {
+     "id": "A1-original-vs-revision",
+     "claim_id": 1,
+     "semantic_eligibility": {
+      "verdict": "contradicted",
+      "eligible": false
+     },
+     "relevance": {
+      "exercised": false,
+      "why": "blocked before relevance: the verifier's verdict was 'contradicted', so the claim is not eligible",
+      "decision": null,
+      "roles": []
+     },
+     "requirement_status": "unresolved",
+     "report_placement": "omitted: not eligible: contradicted",
+     "expected": {
+      "claim_role": "not_direct_answer",
+      "requirement": "not_addressed",
+      "section": "no_direct_answer"
+     },
+     "components": {
+      "claim_role": "not exercised",
+      "requirement": "matches",
+      "section": "matches"
+     },
+     "outcome_matches_expectation": true,
+     "status": "relevance_not_exercised",
+     "note": "the requirement and section fields match only because no eligible, judged claim existed; they are not evidence about relevance"
+    },
+    {
+     "id": "A2-explicit-revision-question",
+     "claim_id": 2,
+     "semantic_eligibility": {
+      "verdict": "supported",
+      "eligible": true
+     },
+     "relevance": {
+      "exercised": true,
+      "why": "the assessor recorded a role for this claim and requirement",
+      "decision": "direct_answer",
+      "roles": [
+       {
+        "role": "direct_answer",
+        "origin": "model",
+        "reason": "states RFC 9113 (current HTTP/2 revision) was published in June 2022"
+       }
+      ]
+     },
+     "requirement_status": "unresolved",
+     "report_placement": "answer",
+     "expected": {
+      "claim_role": "direct_answer",
+      "requirement": "addressed",
+      "section": "answered"
+     },
+     "components": {
+      "claim_role": "matches",
+      "requirement": "differs",
+      "section": "matches"
+     },
+     "outcome_matches_expectation": false,
+     "status": "differs",
+     "note": ""
+    },
+    {
+     "id": "A3-off-topic-milestone",
+     "claim_id": 3,
+     "semantic_eligibility": {
+      "verdict": "supported",
+      "eligible": true
+     },
+     "relevance": {
+      "exercised": true,
+      "why": "the assessor recorded a role for this claim and requirement",
+      "decision": "not_direct_answer",
+      "roles": [
+       {
+        "role": "relevant_context",
+        "origin": "model",
+        "reason": "describes the naming proposal for HTTP/3 in October 2018, not its RFC publication date"
+       }
+      ]
+     },
+     "requirement_status": "unresolved",
+     "report_placement": "context",
+     "expected": {
+      "claim_role": "not_direct_answer",
+      "requirement": "not_addressed",
+      "section": "no_direct_answer"
+     },
+     "components": {
+      "claim_role": "matches",
+      "requirement": "matches",
+      "section": "matches"
+     },
+     "outcome_matches_expectation": true,
+     "status": "pass",
+     "note": ""
+    },
+    {
+     "id": "A4-direct-non-date",
+     "claim_id": 4,
+     "semantic_eligibility": {
+      "verdict": "supported",
+      "eligible": true
+     },
+     "relevance": {
+      "exercised": true,
+      "why": "the assessor recorded a role for this claim and requirement",
+      "decision": "direct_answer",
+      "roles": [
+       {
+        "role": "direct_answer",
+        "origin": "model",
+        "reason": "explicitly states HTTP/3 uses QUIC as its transport layer protocol"
+       }
+      ]
+     },
+     "requirement_status": "addressed",
+     "report_placement": "answer",
+     "expected": {
+      "claim_role": "direct_answer",
+      "requirement": "addressed",
+      "section": "answered"
+     },
+     "components": {
+      "claim_role": "matches",
+      "requirement": "matches",
+      "section": "matches"
+     },
+     "outcome_matches_expectation": true,
+     "status": "pass",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "domain": "databases",
+   "cases": [
+    {
+     "id": "B1-off-topic-milestone",
+     "claim_id": 5,
+     "semantic_eligibility": {
+      "verdict": "supported",
+      "eligible": true
+     },
+     "relevance": {
+      "exercised": false,
+      "why": "the assessor recorded no relevance judgment for this claim and requirement (a missing judgment is not a context classification)",
+      "decision": null,
+      "roles": []
+     },
+     "requirement_status": "unresolved",
+     "report_placement": "omitted: no answer-relevance judgment for this claim in coverage round 0",
+     "expected": {
+      "claim_role": "not_direct_answer",
+      "requirement": "not_addressed",
+      "section": "no_direct_answer"
+     },
+     "components": {
+      "claim_role": "not exercised",
+      "requirement": "matches",
+      "section": "matches"
+     },
+     "outcome_matches_expectation": true,
+     "status": "relevance_not_exercised",
+     "note": "the requirement and section fields match only because no eligible, judged claim existed; they are not evidence about relevance"
+    },
+    {
+     "id": "B2-direct-non-date",
+     "claim_id": 6,
+     "semantic_eligibility": {
+      "verdict": "supported",
+      "eligible": true
+     },
+     "relevance": {
+      "exercised": true,
+      "why": "the assessor recorded a role for this claim and requirement",
+      "decision": "direct_answer",
+      "roles": [
+       {
+        "role": "direct_answer",
+        "origin": "model",
+        "reason": "Directly states that Read Committed is the default isolation level in PostgreSQL"
+       }
+      ]
+     },
+     "requirement_status": "addressed",
+     "report_placement": "answer",
+     "expected": {
+      "claim_role": "direct_answer",
+      "requirement": "addressed",
+      "section": "answered"
+     },
+     "components": {
+      "claim_role": "matches",
+      "requirement": "matches",
+      "section": "matches"
+     },
+     "outcome_matches_expectation": true,
+     "status": "pass",
+     "note": ""
+    }
+   ]
+  }
+ ],
+ "summary": {
+  "pass": 3,
+  "differs": 1,
+  "relevance_not_exercised": 2
+ },
+ "provenance": "AI-assisted development expectations; this is a corrected reading of the original result, not a new experiment and not human ground truth"
+}

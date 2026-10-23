@@ -1,0 +1,5 @@
+{
+  "schema": "deepdive-eval-tuning-log/1",
+  "note": "Record every change made in response to evaluation results (prompt, rubric, model, setting) and the example ids it was evaluated on. Held-out ids may appear only in an entry of kind 'final_heldout_run'. Empty: nothing has been tuned against these datasets.",
+  "entries": []
+}

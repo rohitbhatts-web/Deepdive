@@ -1,0 +1,180 @@
+{
+ "schema": "deepdive-relevance-check-result/1",
+ "provenance": "AI-assisted development expectations, written BEFORE the run. They are not independent human ground truth, not a labelled test set and not an accuracy measure: a disagreement can mean the expectation is wrong.",
+ "limits_per_domain": {
+  "max_model_requests": 6,
+  "max_total_output_tokens": 3000,
+  "max_elapsed_seconds": 90,
+  "max_search_queries": 0,
+  "max_page_fetches": 0,
+  "per_call_timeout_seconds": 60
+ },
+ "domains": [
+  {
+   "domain": "networking",
+   "run_id": 1,
+   "model_requests": 4,
+   "output_tokens": 606,
+   "elapsed_seconds": 8.4,
+   "report_outcome": "claims_with_gaps",
+   "cases": [
+    {
+     "id": "A1-original-vs-revision",
+     "kind": "original publication versus a later revision",
+     "requirement": "Original publication date of the HTTP/2 specification",
+     "claim_id": 1,
+     "expected": {
+      "claim_role": "not_direct_answer",
+      "requirement": "not_addressed",
+      "section": "no_direct_answer"
+     },
+     "observed": {
+      "claim_semantic_verdict": "supported",
+      "claim_eligible": true,
+      "claim_role": "not_direct_answer",
+      "roles": [
+       {
+        "role": "relevant_context",
+        "origin": "model",
+        "reason": "RFC 9113 obsoletes RFC 7540, but this claim gives the date of the revision, not the original specification"
+       }
+      ],
+      "requirement": "not_addressed",
+      "requirement_status": "unresolved",
+      "gap": "The original HTTP/2 specification date is not provided; RFC 9113 is a current revision that obsoletes RFC 7540, which was the original.",
+      "temporal_scope": "original",
+      "section": "no_direct_answer",
+      "section_answer_claims": [],
+      "section_context_claims": [
+       1
+      ]
+     },
+     "agrees_with_expectation": {
+      "claim_role": true,
+      "requirement": true,
+      "section": true
+     },
+     "all_agree": true,
+     "separated": {
+      "semantic_eligibility": {
+       "verdict": "supported",
+       "eligible": true
+      },
+      "relevance": {
+       "exercised": true,
+       "why": "the assessor recorded a role for this claim and requirement",
+       "decision": "not_direct_answer",
+       "roles": [
+        {
+         "role": "relevant_context",
+         "origin": "model",
+         "reason": "RFC 9113 obsoletes RFC 7540, but this claim gives the date of the revision, not the original specification"
+        }
+       ]
+      },
+      "requirement_status": "unresolved",
+      "report_placement": "context",
+      "expected": {
+       "claim_role": "not_direct_answer",
+       "requirement": "not_addressed",
+       "section": "no_direct_answer"
+      },
+      "components": {
+       "claim_role": "matches",
+       "requirement": "matches",
+       "section": "matches"
+      },
+      "outcome_matches_expectation": true,
+      "status": "pass",
+      "note": ""
+     }
+    },
+    {
+     "id": "A2-explicit-revision-question",
+     "kind": "an explicit question about the revised document's publication date",
+     "requirement": "Publication date of the current revision of the HTTP/2 specification",
+     "claim_id": 2,
+     "expected": {
+      "claim_role": "direct_answer",
+      "requirement": "addressed",
+      "section": "answered"
+     },
+     "observed": {
+      "claim_semantic_verdict": "supported",
+      "claim_eligible": true,
+      "claim_role": "direct_answer",
+      "roles": [
+       {
+        "role": "direct_answer",
+        "origin": "model",
+        "reason": "States RFC 9113 (the current revision) was published in June 2022"
+       }
+      ],
+      "requirement": "addressed",
+      "requirement_status": "addressed",
+      "gap": "",
+      "temporal_scope": "revision",
+      "section": "answered",
+      "section_answer_claims": [
+       2
+      ],
+      "section_context_claims": []
+     },
+     "agrees_with_expectation": {
+      "claim_role": true,
+      "requirement": true,
+      "section": true
+     },
+     "all_agree": true,
+     "separated": {
+      "semantic_eligibility": {
+       "verdict": "supported",
+       "eligible": true
+      },
+      "relevance": {
+       "exercised": true,
+       "why": "the assessor recorded a role for this claim and requirement",
+       "decision": "direct_answer",
+       "roles": [
+        {
+         "role": "direct_answer",
+         "origin": "model",
+         "reason": "States RFC 9113 (the current revision) was published in June 2022"
+        }
+       ]
+      },
+      "requirement_status": "addressed",
+      "report_placement": "answer",
+      "expected": {
+       "claim_role": "direct_answer",
+       "requirement": "addressed",
+       "section": "answered"
+      },
+      "components": {
+       "claim_role": "matches",
+       "requirement": "matches",
+       "section": "matches"
+      },
+      "outcome_matches_expectation": true,
+      "status": "pass",
+      "note": ""
+     }
+    }
+   ]
+  }
+ ],
+ "follow_up": {
+  "name": "a1a2-v5",
+  "purpose": "A fresh check of A1 and A2 after two input/handling changes: the semantic verifier no longer receives the question or subquestion (rubric attribution-v5), and the subject backstop no longer rejects a descriptive subject. The expectations are the ones recorded before the first run and are NOT changed; nothing is forced. If the verifier blocks A1 again, A1 is recorded as relevance not exercised."
+ },
+ "totals": {
+  "model_requests": 4,
+  "output_tokens": 606,
+  "elapsed_seconds": 8.4
+ },
+ "charges": {
+  "provider_reported_usd": 0.010775,
+  "calls_with_charge": 4,
+  "calls": 4
+ }
+}

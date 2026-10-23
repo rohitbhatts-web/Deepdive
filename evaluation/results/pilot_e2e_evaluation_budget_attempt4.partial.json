@@ -1,0 +1,172 @@
+{
+ "status": "complete",
+ "completed_questions": [
+  {
+   "question_id": "Q02",
+   "split": "dev",
+   "run_id": 1,
+   "status": "failed",
+   "stop_reason": "drafter failed: Mesh call failed for model 'qwen/qwen3-235b-a22b-instruct-2507': TimeoutError: wall-clock deadline of 60s reached; the request was cancelled and its connection closed (request timeout 60s)",
+   "report_outcome": null,
+   "report_id": null,
+   "report_claims": 0,
+   "report_markdown": null,
+   "initial": [],
+   "final": [],
+   "citations": [],
+   "system_coverage": [],
+   "corrective_rounds": null,
+   "budget_used_of_limit": {
+    "model_requests": [
+     11,
+     40
+    ],
+    "search_queries": [
+     6,
+     8
+    ],
+    "page_fetches": [
+     8,
+     12
+    ],
+    "candidate_claims": [
+     0,
+     4
+    ],
+    "output_tokens": [
+     4162,
+     30000
+    ],
+    "elapsed_seconds": [
+     317.3,
+     600.0
+    ]
+   },
+   "usage": {
+    "model_calls": 11,
+    "failed_calls": 2,
+    "prompt_tokens": null,
+    "completion_tokens": null,
+    "latency_seconds": 289.825,
+    "calculated_cost_usd": null,
+    "provider_reported_cost_usd": null,
+    "searches": 6
+   },
+   "errors": [
+    "no report was stored"
+   ],
+   "failure": {
+    "status": "collection_finished",
+    "stage": "verification: drafting",
+    "reason": "drafter failed: Mesh call failed for model 'qwen/qwen3-235b-a22b-instruct-2507': TimeoutError: wall-clock deadline of 60s reached; the request was cancelled and its connection closed (request timeout 60s)",
+    "classification": "transport_timeout",
+    "last_failed_call": {
+     "agent": "drafter",
+     "model": "qwen/qwen3-235b-a22b-instruct-2507",
+     "measured_wait_ms": 60032,
+     "deadline_seconds": 60,
+     "error": "TimeoutError: wall-clock deadline of 60s reached; the request was cancelled and its connection closed (request timeout 60s)"
+    },
+    "report_stored": false
+   }
+  },
+  {
+   "question_id": "Q05",
+   "split": "dev",
+   "run_id": 2,
+   "status": "completed",
+   "stop_reason": "no progress: the eligible claims and every requirement status are unchanged",
+   "report_outcome": "insufficient_evidence",
+   "report_id": 1,
+   "report_claims": 0,
+   "report_markdown": "# Research report\n\nResearch question: Has Mistral AI publicly reported a net profit or loss for fiscal year 2024, and if so, what is the figure and which primary source states it?\n\nResult: insufficient evidence. No claim qualified for this report.\nStopped because: no progress: the eligible claims and every requirement status are unchanged\n\n## Section 1\nSubquestion: Has Mistral AI released an official financial statement or annual report for fiscal year 2024 that includes net profit or loss?\n\nNo verified claim is available for this subquestion.\n\n\n## Section 2\nSubquestion: What is the net profit or net loss reported by Mistral AI for fiscal year 2024, if any?\n\nNo verified claim is available for this subquestion.\n\n\n## Section 3\nSubquestion: Is there an official, publicly accessible document\u2014such as an annual report, press release, or regulatory filing\u2014published by Mistral AI that discloses the financial results for fiscal year 2024?\n\nNo verified claim is available for this subquestion.\n\n\n## Evidence requirements not fully addressed\n\n- statement on release of financial results for fiscal year 2024 (unresolved; coverage note, model assessment: no eligible claim exists yet)\n- indication of net profit or net loss in the report (unresolved; coverage note, model assessment: no eligible claim exists yet)\n- numerical value of net profit or loss (unresolved; coverage note, model assessment: no eligible claim exists yet)\n- currency and time period (fiscal year 2024) (unresolved; coverage note, model assessment: no eligible claim exists yet)\n- title and publication date of the document (unresolved; coverage note, model assessment: no eligible claim exists yet)\n- publisher (must be Mistral AI or authorized entity) (unresolved; coverage note, model assessment: no eligible claim exists yet)\n- direct link or citation to the source (unresolved; coverage note, model assessment: no eligible claim exists yet)\n",
+   "initial": [],
+   "final": [],
+   "citations": [],
+   "system_coverage": [
+    {
+     "requirement_key": "Q5.R1",
+     "text": "statement on release of financial results for fiscal year 2024",
+     "status": "unresolved",
+     "gap": "no eligible claim exists yet"
+    },
+    {
+     "requirement_key": "Q5.R2",
+     "text": "indication of net profit or net loss in the report",
+     "status": "unresolved",
+     "gap": "no eligible claim exists yet"
+    },
+    {
+     "requirement_key": "Q6.R1",
+     "text": "numerical value of net profit or loss",
+     "status": "unresolved",
+     "gap": "no eligible claim exists yet"
+    },
+    {
+     "requirement_key": "Q6.R2",
+     "text": "currency and time period (fiscal year 2024)",
+     "status": "unresolved",
+     "gap": "no eligible claim exists yet"
+    },
+    {
+     "requirement_key": "Q7.R1",
+     "text": "title and publication date of the document",
+     "status": "unresolved",
+     "gap": "no eligible claim exists yet"
+    },
+    {
+     "requirement_key": "Q7.R2",
+     "text": "publisher (must be Mistral AI or authorized entity)",
+     "status": "unresolved",
+     "gap": "no eligible claim exists yet"
+    },
+    {
+     "requirement_key": "Q7.R3",
+     "text": "direct link or citation to the source",
+     "status": "unresolved",
+     "gap": "no eligible claim exists yet"
+    }
+   ],
+   "corrective_rounds": 1,
+   "budget_used_of_limit": {
+    "model_requests": [
+     12,
+     40
+    ],
+    "search_queries": [
+     8,
+     8
+    ],
+    "page_fetches": [
+     0,
+     12
+    ],
+    "candidate_claims": [
+     0,
+     4
+    ],
+    "output_tokens": [
+     1045,
+     30000
+    ],
+    "elapsed_seconds": [
+     179.7,
+     600.0
+    ]
+   },
+   "usage": {
+    "model_calls": 12,
+    "failed_calls": 0,
+    "prompt_tokens": 10096,
+    "completion_tokens": 1045,
+    "latency_seconds": 156.524,
+    "calculated_cost_usd": null,
+    "provider_reported_cost_usd": null,
+    "searches": 8
+   },
+   "errors": [],
+   "failure": null
+  }
+ ],
+ "interrupted_question": null
+}

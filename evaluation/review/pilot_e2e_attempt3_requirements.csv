@@ -1,0 +1,8 @@
+run_key,question_id,requirement_id,requirement,kind,run_status,human_label,reviewer,reviewed_at,note
+Q02@1,Q02,R1,RFC number and publication date (month and year) for HTTP/2.,date,,,,,
+Q02@1,Q02,R2,RFC number and publication date (month and year) for HTTP/3.,date,,,,,
+Q02@1,Q02,R3,The transport protocol each version runs over.,multi_subject,,,,,
+Q02@1,Q02,R4,"How each version handles head-of-line blocking, without mixing up the two layers.",multi_subject,,,,,
+Q05@2,Q05,R1,"States whether a primary-source figure for the fiscal year 2024 net profit or loss was found. If found: the figure, the fiscal year, the primary source and its date; if not found: an explicit statement that it was not found, and no figure.",evidence_seeking,RUN FAILED at collection: source-relevance check (cross-subquestion association); environment_interrupted,,,,
+Q05@2,Q05,R2,"Describes where the pipeline looked (the kinds of primary source consulted), consistent with the run's recorded searches.",search_record,RUN FAILED at collection: source-relevance check (cross-subquestion association); environment_interrupted,,,,
+Q05@2,Q05,R3,"Any related figure (funding, revenue, valuation, third-party estimate) is labelled as a different quantity or as a third-party estimate and attributed; none is presented as the company's reported net profit.",qualification,RUN FAILED at collection: source-relevance check (cross-subquestion association); environment_interrupted,,,,

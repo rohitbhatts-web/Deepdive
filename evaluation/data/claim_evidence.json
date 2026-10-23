@@ -1,0 +1,1508 @@
+{
+ "schema": "deepdive-eval-claim-evidence/1",
+ "built": "2026-10-21",
+ "label_policy": "`proposed` labels are PROVISIONAL model suggestions. They are never ground truth and the harness never scores against them. Authoritative labels live only in human_labels.json.",
+ "evaluation_scope": "single_domain_database_evidence",
+ "domain_limitation": "All evidence is reused stored evidence from the SQLite/PostgreSQL development runs. This claim set is a single-domain verification test set: it is NOT a cross-domain evaluation and says nothing about other domains.",
+ "label_rules": [
+  {
+   "id": "R1",
+   "title": "Evidence boundary",
+   "text": "Judge ONLY the cited text exactly as shown on the review sheet (that is what the verifier receives, cut at 1,500 characters, which cuts none of these). Ignore other parts of the page, other passages and what you know. A frozen example has no neighbouring-passage context; the production pipeline adds neighbours."
+  },
+  {
+   "id": "R2",
+   "title": "Decompose the claim",
+   "text": "List every assertion: entities, numbers, dates, scope words (always, only, all, at most), hedges and attribution (who said it)."
+  },
+  {
+   "id": "R3",
+   "title": "contradicted",
+   "text": "The shown text explicitly states something incompatible with an assertion of the claim (a different number or date, the opposite status, a negation, a different named entity). An explicit evidential contradiction takes precedence over partial support: if any assertion is explicitly contradicted, label contradicted even when another assertion is established. Something merely implied or merely not mentioned is never a contradiction."
+  },
+  {
+   "id": "R4",
+   "title": "Precedence when parts disagree",
+   "text": "First apply R3: an explicitly contradicted assertion makes the claim contradicted. Only when no assertion is explicitly contradicted: if at least one assertion is established AND at least one other is missing, stronger, broader or more certain than the text, label partially_supported. partially_supported therefore means support that is incomplete or overstated WITHOUT explicit contradiction. Supported never wins when any part fails."
+  },
+  {
+   "id": "R5",
+   "title": "Weaker core versus stronger claim",
+   "text": "When the text establishes the claim's central fact but in a weaker form (a suggestion stated as a rule, a list entry stated as the largest, a hedge dropped), label partially_supported."
+  },
+  {
+   "id": "R6",
+   "title": "unsupported",
+   "text": "The text does not establish the claim's central fact: off-topic, a genuine quote that says nothing about it, a typical use case restated as a limit, a plan or forecast restated as something that happened, a different assertion on the same topic."
+  },
+  {
+   "id": "R7",
+   "title": "Attribution",
+   "text": "A claim that attributes a statement or recommendation to its source ('Tinybird says ...') is judged on whether the source says it. A claim that states a source's opinion, ranking or forecast as plain fact is not fully supported."
+  }
+ ],
+ "label_rubric_version": "claim-labels-v2",
+ "label_rubric_history": [
+  {
+   "version": "claim-labels-v1",
+   "date": "2026-10-21",
+   "status": "superseded by claim-labels-v2",
+   "changed_rules": {
+    "R3": "The shown text states something incompatible with the claim (a different number or date, the opposite status, a negation, a different named entity) AND no assertion of the claim is established. A single-assertion claim whose assertion is explicitly opposed is contradicted. Something merely implied or merely not mentioned is never a contradiction.",
+    "R4": "If at least one assertion is established AND at least one other is missing, stronger, broader, more certain or explicitly contradicted, label partially_supported. A contradicted part does NOT make the whole claim contradicted when another part is supported (this follows the verifier's rule for bundled claims). Supported never wins when any part fails."
+   }
+  },
+  {
+   "version": "claim-labels-v2",
+   "date": "2026-10-21",
+   "status": "current",
+   "change": "An explicit evidential contradiction takes precedence over partial support. partially_supported applies when support is incomplete or overstated without explicit contradiction. R3 and R4 were rewritten; R1, R2, R5, R6 and R7 are unchanged.",
+   "reason": "v1 R4 said a contradicted part next to a supported part is partially_supported, while the reviewer's decision for CE16 (one figure matches, one is explicitly contradicted) was contradicted. The two could not both be applied, so the rule was reconciled before any label was imported.",
+   "verifier_note": "When v2 was adopted the product verifier's bundled-claim sentence ('any that the evidence does not establish makes the claim partially_supported') conflicted with it. It was aligned afterwards as verifier rubric attribution-v2 (backend/claims.py RUBRIC_HISTORY): an explicit contradiction of any asserted part takes precedence. Verdicts made earlier keep their stamp attribution-v1 and are not rewritten. A scripted test checks the instruction text and output schema, not model judgment.",
+   "labels_affected": "No human label existed when v2 was adopted (nothing had been imported), so no confirmed label changed under v2.",
+   "held_out_note": "Held-out CE19 has the same shape (supported part plus an explicitly contradicted part). Its provisional label and its v1 annotation are deliberately left as written; it is reviewed with the other held-out examples, not before."
+  }
+ ],
+ "rubric_flags": {
+  "CE13": {
+   "rubric": "claim-labels-v2",
+   "proposed_under_v1": "partially_supported",
+   "v2_would_give": "contradicted",
+   "why": "Public domain is supported; 'accepts contributions from anyone' is explicitly opposed by the text (the project is not open-contribution). Under v2 R3 the explicit contradiction takes precedence.",
+   "status": "needs_human_review"
+  },
+  "CE16": {
+   "rubric": "claim-labels-v2",
+   "proposed_under_v1": "partially_supported",
+   "v2_would_give": "contradicted",
+   "why": "The 156,000 figure matches; the test-code figure (920 million vs 92 million) is explicitly contradicted. Matches the reviewer's stated decision (contradicted); the provisional label still shows the v1 result.",
+   "status": "needs_human_review"
+  }
+ },
+ "label_review_log": [
+  {
+   "date": "2026-10-21",
+   "example_line": "Facebook is SQLite's largest customer.",
+   "from": "unsupported",
+   "to": "partially_supported",
+   "rule": "R5",
+   "reason": "Re-reviewed on the exact text the verifier receives: the central fact (a key customer) is established, only the ranking is not. This example is in the held-out split; the change is to a provisional label, made before any run or human review."
+  },
+  {
+   "date": "2026-10-21",
+   "example_line": "Tinybird says teams should always run Postgres locally through Docker.",
+   "from": "unsupported",
+   "to": "partially_supported",
+   "rule": "R5",
+   "reason": "Same re-review: the suggestion is established, 'always' is not."
+  },
+  {
+   "date": "2026-10-21",
+   "example_line": "(CE08, CE12, CE19, CE24, CE36)",
+   "from": "ambiguity notes",
+   "to": "ambiguity notes plus the deciding rule",
+   "rule": "R1/R3/R4",
+   "reason": "Labels unchanged. Each ambiguity is now decided by a stated rule, using the exact verifier-visible text, and the remaining reason for hesitation is kept."
+  }
+ ],
+ "independence_note": "Passages with cited_by_development_claims=true were cited by claims in the Phase 3/4 development runs. The held-out split is independent in its CLAIMS only, not in its evidence sources.",
+ "sources": {
+  "wikipedia_sqlite": {
+   "url": "https://en.wikipedia.org/wiki/SQLite",
+   "requested_url": "https://en.wikipedia.org/wiki/SQLite",
+   "title": "SQLite - Wikipedia",
+   "retrieved_at": "2026-10-20T16:40:50+00:00",
+   "content_type": "text/html; charset=UTF-8",
+   "content_hash": "ebc70d877417da4d1f2161997b7687a930b4c8342abc28a51d2e43c0e700d8d9",
+   "provenance": {
+    "database": "phase1-live.db",
+    "source_id": 1,
+    "database_sha256": "a1b82330b96ba6ac7c4621613d776e7c5519107d414d7d9ff1213b591f26ee9b"
+   }
+  },
+  "postgresql_docs": {
+   "url": "https://www.postgresql.org/docs/current/transaction-iso.html",
+   "requested_url": "https://www.postgresql.org/docs/current/transaction-iso.html",
+   "title": "PostgreSQL: Documentation: 18: 13.2. Transaction Isolation",
+   "retrieved_at": "2026-10-20T20:21:10+00:00",
+   "content_type": "text/html; charset=utf-8",
+   "content_hash": "dcdd86317479c2eb6275208ccc8fd9431b131b60c3978afae68726a028b4260d",
+   "provenance": {
+    "database": "live-corrective.db",
+    "source_id": 4,
+    "database_sha256": "d9dc5e96a0451948d24c4a7225ffbf245c79fedabada8b8a9b75f36e48400723"
+   }
+  },
+  "datacamp": {
+   "url": "https://www.datacamp.com/blog/sqlite-vs-postgresql-detailed-comparison",
+   "requested_url": "https://www.datacamp.com/blog/sqlite-vs-postgresql-detailed-comparison",
+   "title": "SQLite vs PostgreSQL: A Detailed Comparison | DataCamp",
+   "retrieved_at": "2026-10-20T20:21:31+00:00",
+   "content_type": "text/html; charset=utf-8",
+   "content_hash": "ca9ec5b0b962039fc913174d40ad98b3cff5ba0751fa9e976d5365696e7f019d",
+   "provenance": {
+    "database": "live-corrective.db",
+    "source_id": 5,
+    "database_sha256": "d9dc5e96a0451948d24c4a7225ffbf245c79fedabada8b8a9b75f36e48400723"
+   },
+   "withheld": true
+  },
+  "tinybird": {
+   "url": "https://www.tinybird.co/blog/postgres-vs-sqlite",
+   "requested_url": "https://www.tinybird.co/blog/postgres-vs-sqlite",
+   "title": "Postgres vs SQLite | Tinybird",
+   "retrieved_at": "2026-10-20T18:09:23+00:00",
+   "content_type": "text/html; charset=utf-8",
+   "content_hash": "cbe0e4c3eb028e92caa6ebfcaeab412e7603d949cd843f59fe43d50ad0df77c1",
+   "provenance": {
+    "database": "live-corrective.db",
+    "source_id": 2,
+    "database_sha256": "d9dc5e96a0451948d24c4a7225ffbf245c79fedabada8b8a9b75f36e48400723"
+   },
+   "withheld": true
+  },
+  "devto": {
+   "url": "https://dev.to/lovestaco/postgresql-vs-sqlite-dive-into-two-very-different-databases-5a90",
+   "requested_url": "https://dev.to/lovestaco/postgresql-vs-sqlite-dive-into-two-very-different-databases-5a90",
+   "title": "PostgreSQL vs SQLite: Dive into Two Very Different Databases - DEV Community",
+   "retrieved_at": "2026-10-20T18:09:21+00:00",
+   "content_type": "text/html; charset=utf-8",
+   "content_hash": "e4498dfe97414f4237c03c77050c0fe758b8263ab60edacfa1c01ba3726ab550",
+   "provenance": {
+    "database": "live-corrective.db",
+    "source_id": 1,
+    "database_sha256": "d9dc5e96a0451948d24c4a7225ffbf245c79fedabada8b8a9b75f36e48400723"
+   },
+   "withheld": true
+  },
+  "logz": {
+   "url": "https://logz.io/blog/relational-database-comparison/",
+   "requested_url": "https://logz.io/blog/relational-database-comparison",
+   "title": "SQLite vs. MySQL vs. PostgreSQL Databases",
+   "retrieved_at": "2026-10-20T18:09:35+00:00",
+   "content_type": "text/html; charset=UTF-8",
+   "content_hash": "0a8493d2b3fbb94cee19f870fc4f4890ea8e21354538fa0f1b12d94b8bceb227",
+   "provenance": {
+    "database": "live-corrective.db",
+    "source_id": 3,
+    "database_sha256": "d9dc5e96a0451948d24c4a7225ffbf245c79fedabada8b8a9b75f36e48400723"
+   },
+   "withheld": true
+  }
+ },
+ "passages": {
+  "wikipedia_sqlite:P16": {
+   "source": "wikipedia_sqlite",
+   "ordinal": 16,
+   "stored_passage_id": "S1-P16",
+   "text": "SQLite uses automated regression testing prior to each release. Over 2 million tests are run as part of a release's verification. The SQLite library has 156,000 lines of source code, while all the test suites combined add up to 92 million lines of test code. SQLite's tests simulate a number of exceptional scenarios, such as power loss and I/O errors, in addition to testing the library's functionality. Starting with the August 10, 2009 release of SQLite 3.6.17, SQLite releases have 100% branch test coverage, one of the components of code coverage. SQLite has four different test harnesses: the original public-domain TCL tests, the proprietary C-language TH3 test suite, the SQL Logic Tests, which check SQLite against other SQL databases, and the dbsqlfuzz proprietary fuzzing engine.[46]\n\nNotable uses\n\n[edit]\n\nOperating systems\n\n[edit]\n\nSQLite is included by default in:\n\nAndroid[14][47]\n\nBlackBerry Tablet OS[48]\n\niOS[13]",
+   "cited_by_development_claims": false
+  },
+  "wikipedia_sqlite:P9": {
+   "source": "wikipedia_sqlite",
+   "ordinal": 9,
+   "stored_passage_id": "S1-P9",
+   "text": "SQLite stores the entire database, consisting of definitions, tables, indices, and data, as a single cross-platform file, allowing several processes or threads to access the same database concurrently. It implements this simple design by locking the database file during writing.[20] Write access may fail with an error code, or it can be retried until a configurable timeout expires. SQLite read operations can be multitasked, though due to the serverless design, writes can only be performed sequentially. This concurrent access restriction does not apply to temporary tables, and it is relaxed in version 3.7 as write-ahead logging (WAL) enables concurrent reads and writes.[21] Since SQLite has to rely on file-system locks, it is not the preferred choice for write-intensive deployments.[22]",
+   "cited_by_development_claims": false
+  },
+  "postgresql_docs:P5": {
+   "source": "postgresql_docs",
+   "ordinal": 5,
+   "stored_passage_id": "S4-P5",
+   "text": "Read Committed is the default isolation level in PostgreSQL. When a transaction uses this isolation level, a SELECT query (without a FOR UPDATE/SHARE clause) sees only data committed before the query began; it never sees either uncommitted data or changes committed by concurrent transactions during the query's execution. In effect, a SELECT query sees a snapshot of the database as of the instant the query begins to run. However, SELECT does see the effects of previous updates executed within its own transaction, even though they are not yet committed. Also note that two successive SELECT commands can see different data, even though they are within a single transaction, if other transactions commit changes after the first SELECT starts and before the second SELECT starts.",
+   "cited_by_development_claims": false
+  },
+  "tinybird:P12": {
+   "source": "tinybird",
+   "ordinal": 12,
+   "stored_passage_id": "S2-P12",
+   "text": null,
+   "cited_by_development_claims": false,
+   "withheld": true,
+   "text_sha256": "3d3a822d4fee13e452696150eaba02bf5d9c2d1371256c9d035588e9e901ea79",
+   "text_chars": 679,
+   "withheld_reason": "all rights reserved by the publisher; URL, retrieval date and source content hash are kept"
+  },
+  "wikipedia_sqlite:P14": {
+   "source": "wikipedia_sqlite",
+   "ordinal": 14,
+   "stored_passage_id": "S1-P14",
+   "text": "In May 2025, the 25th‑anniversary release SQLite 3.50.0 introduced additional features, including new Unicode functions (unistr() and unistr_quote()), a new API (sqlite3_setlk_timeout()) for setting lock timeouts, improved command‑line tools and rsync utility enhancements, and optimized JSONB.[38]\n\nThe maximum supported size for an SQLite database file is 281 terabytes.[39]\n\nSQLite normally stores every table and index in a SQLite database in a single ordinary disk file. Alternatively, SQLite can be told to keep a SQL database entirely in memory as an in-memory database with the :memory: connection string.[40]\n\nDevelopment and distribution\n\n[edit]\n\nSQLite's code is hosted with Fossil, a distributed version control system that uses SQLite as a local cache for its non-relational database format, and SQLite's SQL as an implementation language.[41][42]",
+   "cited_by_development_claims": false
+  },
+  "datacamp:P11": {
+   "source": "datacamp",
+   "ordinal": 11,
+   "stored_passage_id": "S5-P11",
+   "text": null,
+   "cited_by_development_claims": false,
+   "withheld": true,
+   "text_sha256": "91913acb61289c5564063797c8a955ce1c9a0b6497c8106a30251efdcca2137e",
+   "text_chars": 816,
+   "withheld_reason": "all rights reserved by the publisher; URL, retrieval date and source content hash are kept"
+  },
+  "postgresql_docs:P21": {
+   "source": "postgresql_docs",
+   "ordinal": 21,
+   "stored_passage_id": "S4-P21",
+   "text": "To guarantee true serializability PostgreSQL uses predicate locking, which means that it keeps locks which allow it to determine when a write would have had an impact on the result of a previous read from a concurrent transaction, had it run first. In PostgreSQL these locks do not cause any blocking and therefore can not play any part in causing a deadlock. They are used to identify and flag dependencies among concurrent Serializable transactions which in certain combinations can lead to serialization anomalies. In contrast, a Read Committed or Repeatable Read transaction which wants to ensure data consistency may need to take out a lock on an entire table, which could block other users attempting to use that table, or it may use SELECT FOR UPDATE or SELECT FOR SHARE which not only can block other transactions but cause disk access.",
+   "cited_by_development_claims": true
+  },
+  "wikipedia_sqlite:P1": {
+   "source": "wikipedia_sqlite",
+   "ordinal": 1,
+   "stored_passage_id": "S1-P1",
+   "text": "application/vnd.sqlite3[3]\n\nMagic number\n\n53 51 4c 69 74 65 20 66 6f 72 6d 61 74 20 33 00 (zero-terminated ASCII \"SQLite format 3\")\n\nInitial release\n\n2004-06-18\n\nOpen format?\n\nyes (Public Domain)\n\nWebsite\n\nsqlite.org/fileformat.html\n\nThis article is part of a series on the\n\nStructured Query Language\n\nList of RDBMSs\n\n4th Dimension\n\nAccess Database Engine\n\nActian Zen\n\nAdabas D\n\nSAP Advantage Database Server\n\nAirtable\n\nAltibase\n\nAmazon Aurora\n\nAmazon Redshift\n\nApache Derby\n\nApache Ignite\n\nAster Data Systems\n\nCA Datacom\n\nClarion\n\nClickHouse\n\nClustrix\n\nCockroachDB\n\nCUBRID\n\nDataEase\n\nDataFlex\n\nDataphor\n\ndBase\n\nDuckDB\n\nEmpress Embedded Database\n\nEnterpriseDB\n\neXtremeDB\n\nExasol\n\nExtensible Storage Engine\n\nFileMaker Pro\n\nFirebird\n\nFoundationDB\n\nFrontBase\n\nGoogle BigQuery\n\nGreenplum\n\nH2\n\nHelix\n\nHSQLDB\n\nIBM Db2\n\nIBM Lotus Approach\n\nCA IDMS\n\nInfobright\n\nInformix\n\nIngres\n\nInterBase\n\nInterSystems Caché\n\nInterSystems IRIS\n\nLinter SQL RDBMS\n\nMariaDB\n\nMaxDB\n\nMicrosoft Azure SQL Database",
+   "cited_by_development_claims": false
+  },
+  "devto:P2": {
+   "source": "devto",
+   "ordinal": 2,
+   "stored_passage_id": "S1-P2",
+   "text": null,
+   "cited_by_development_claims": false,
+   "withheld": true,
+   "text_sha256": "8a38d1065a0bcfbd2098c2f50521f10222a1fe82bbbacea685915e77ef2ee142",
+   "text_chars": 999,
+   "withheld_reason": "all rights reserved by the publisher; URL, retrieval date and source content hash are kept"
+  },
+  "datacamp:P5": {
+   "source": "datacamp",
+   "ordinal": 5,
+   "stored_passage_id": "S5-P5",
+   "text": null,
+   "cited_by_development_claims": false,
+   "withheld": true,
+   "text_sha256": "3b135b7fee6e07ca68b780b48f3c3ab1de2f26572fe9545d5ccb5227b1b5cc8c",
+   "text_chars": 966,
+   "withheld_reason": "all rights reserved by the publisher; URL, retrieval date and source content hash are kept"
+  },
+  "wikipedia_sqlite:P15": {
+   "source": "wikipedia_sqlite",
+   "ordinal": 15,
+   "stored_passage_id": "S1-P15",
+   "text": "SQLite is public domain, but not \"open-contribution\", with the website stating \"the project does not accept patches from people who have not submitted an affidavit dedicating their contribution into the public domain.\"[43] Instead of a code of conduct, the founders have adopted a code of ethics based on chapter 4 of the Rule of St. Benedict.[44]\n\nA standalone command-line shell program called sqlite3[45] is provided in SQLite's distribution. It can be used to create a database, define tables, insert and change rows, run queries and manage an SQLite database file. It also serves as an example for writing applications that use the SQLite library.",
+   "cited_by_development_claims": false
+  },
+  "tinybird:P21": {
+   "source": "tinybird",
+   "ordinal": 21,
+   "stored_passage_id": "S2-P21",
+   "text": null,
+   "cited_by_development_claims": false,
+   "withheld": true,
+   "text_sha256": "b9d247a18c45acb8e62fc53e477156c96cb2010f62c8bfe69990e2895d1338e4",
+   "text_chars": 982,
+   "withheld_reason": "all rights reserved by the publisher; URL, retrieval date and source content hash are kept"
+  },
+  "postgresql_docs:P26": {
+   "source": "postgresql_docs",
+   "ordinal": 26,
+   "stored_passage_id": "S4-P26",
+   "text": "When the system is forced to combine multiple page-level predicate locks into a single relation-level predicate lock because the predicate lock table is short of memory, an increase in the rate of serialization failures may occur. You can avoid this by increasing max_pred_locks_per_transaction, max_pred_locks_per_relation, and/or max_pred_locks_per_page.\n\nA sequential scan will always necessitate a relation-level predicate lock. This can result in an increased rate of serialization failures. It may be helpful to encourage the use of index scans by reducing random_page_cost and/or increasing cpu_tuple_cost. Be sure to weigh any decrease in transaction rollbacks and restarts against any overall change in query execution time.",
+   "cited_by_development_claims": false
+  },
+  "devto:P4": {
+   "source": "devto",
+   "ordinal": 4,
+   "stored_passage_id": "S1-P4",
+   "text": null,
+   "cited_by_development_claims": false,
+   "withheld": true,
+   "text_sha256": "4282cbc5a233ebb07ab47ac6654b77600f96627599bef2dcdd625d68e0a5ce04",
+   "text_chars": 962,
+   "withheld_reason": "all rights reserved by the publisher; URL, retrieval date and source content hash are kept"
+  },
+  "logz:P4": {
+   "source": "logz",
+   "ordinal": 4,
+   "stored_passage_id": "S3-P4",
+   "text": null,
+   "cited_by_development_claims": false,
+   "withheld": true,
+   "text_sha256": "449c92544d32cd83b0ade1fff7b8d666de63d5d17638c1d30c851682d7fb9d26",
+   "text_chars": 719,
+   "withheld_reason": "all rights reserved by the publisher; URL, retrieval date and source content hash are kept"
+  },
+  "wikipedia_sqlite:P8": {
+   "source": "wikipedia_sqlite",
+   "ordinal": 8,
+   "stored_passage_id": "S1-P8",
+   "text": "Due to the serverless design, SQLite applications require less configuration than client–server databases. SQLite is called zero-configuration[19] because configuration tasks such as service management, startup scripts, and password- or GRANT-based access control are unnecessary. Access control is handled through the file-system permissions of the database file.[20] Databases in client–server systems use file-system permissions that give access to the database files only to the daemon process, which handles its locks internally, allowing concurrent writes from several processes.",
+   "cited_by_development_claims": false
+  },
+  "postgresql_docs:P3": {
+   "source": "postgresql_docs",
+   "ordinal": 3,
+   "stored_passage_id": "S4-P3",
+   "text": "Serializable\n\nNot possible\n\nNot possible\n\nNot possible\n\nNot possible\n\nIn PostgreSQL, you can request any of the four standard transaction isolation levels, but internally only three distinct isolation levels are implemented, i.e., PostgreSQL's Read Uncommitted mode behaves like Read Committed. This is because it is the only sensible way to map the standard isolation levels to PostgreSQL's multiversion concurrency control architecture.\n\nThe table also shows that PostgreSQL's Repeatable Read implementation does not allow phantom reads. This is acceptable under the SQL standard because the standard specifies which anomalies must not occur at certain isolation levels; higher guarantees are acceptable. The behavior of the available isolation levels is detailed in the following subsections.\n\nTo set the transaction isolation level of a transaction, use the command SET TRANSACTION.\n\nImportant",
+   "cited_by_development_claims": true
+  },
+  "wikipedia_sqlite:P6": {
+   "source": "wikipedia_sqlite",
+   "ordinal": 6,
+   "stored_passage_id": "S1-P6",
+   "text": "In August 2000, version 1.0 of SQLite was released, with storage based on gdbm (GNU Database Manager). In September 2001, SQLite 2.0 replaced gdbm with a custom B-tree implementation,[a] adding transaction capability. In June 2004, SQLite 3.0 added internationalization, manifest typing, and other major improvements, partially funded by America Online. In 2011, Hipp announced his plans to add a NoSQL interface to SQLite, as well as announcing UnQL, a functional superset of SQL designed for document-oriented databases.[15]\n\nSQLite is one of four formats recommended for long-term storage of datasets approved for use by the United States Library of Congress.[16][17][18]\n\nDesign\n\n[edit]",
+   "cited_by_development_claims": false
+  },
+  "wikipedia_sqlite:P5": {
+   "source": "wikipedia_sqlite",
+   "ordinal": 5,
+   "stored_passage_id": "S1-P5",
+   "text": "Many programming languages have bindings to the SQLite library. It generally follows PostgreSQL syntax, but does not enforce type checking by default.[8][9] This means that one can, for example, insert a string into a column defined as an integer. Although it is a lightweight embedded database, SQLite implements most of the SQL standard and the relational model, including transactions and ACID guarantees.[10] However, it omits many features implemented by other databases, such as materialized views and complete support for triggers and ALTER TABLE statements.[11]\n\nHistory\n\n[edit]\n\nD. Richard Hipp designed SQLite in the spring of 2000 while working for General Dynamics on contract with the United States Navy.[12] Hipp was designing software used for a damage-control system aboard guided-missile destroyers; the damage-control system originally used HP-UX with an Informix database back-end. SQLite began as a Tcl extension.[13]",
+   "cited_by_development_claims": false
+  },
+  "postgresql_docs:P17": {
+   "source": "postgresql_docs",
+   "ordinal": 17,
+   "stored_passage_id": "S4-P17",
+   "text": "The Repeatable Read isolation level is implemented using a technique known in academic database literature and in some other database products as Snapshot Isolation. Differences in behavior and performance may be observed when compared with systems that use a traditional locking technique that reduces concurrency. Some other systems may even offer Repeatable Read and Snapshot Isolation as distinct isolation levels with different behavior. The permitted phenomena that distinguish the two techniques were not formalized by database researchers until after the SQL standard was developed, and are outside the scope of this manual. For a full treatment, please see [berenson95].\n\nNote\n\nPrior to PostgreSQL version 9.1, a request for the Serializable transaction isolation level provided exactly the same behavior described here. To retain the legacy Serializable behavior, Repeatable Read should now be requested.\n\n13.2.3. Serializable Isolation Level #",
+   "cited_by_development_claims": false
+  },
+  "logz:P2": {
+   "source": "logz",
+   "ordinal": 2,
+   "stored_passage_id": "S3-P2",
+   "text": null,
+   "cited_by_development_claims": false,
+   "withheld": true,
+   "text_sha256": "2aef7ad57b5c21f02b77bc9f558e8d8628088b10e91a863fad5f0409795774ea",
+   "text_chars": 843,
+   "withheld_reason": "all rights reserved by the publisher; URL, retrieval date and source content hash are kept"
+  },
+  "tinybird:P18": {
+   "source": "tinybird",
+   "ordinal": 18,
+   "stored_passage_id": "S2-P18",
+   "text": null,
+   "cited_by_development_claims": false,
+   "withheld": true,
+   "text_sha256": "8705364c39ac1b52a22134723876c505378afc24df9f2b2af69339cd0b424df0",
+   "text_chars": 729,
+   "withheld_reason": "all rights reserved by the publisher; URL, retrieval date and source content hash are kept"
+  },
+  "postgresql_docs:P18": {
+   "source": "postgresql_docs",
+   "ordinal": 18,
+   "stored_passage_id": "S4-P18",
+   "text": "The Serializable isolation level provides the strictest transaction isolation. This level emulates serial transaction execution for all committed transactions; as if transactions had been executed one after another, serially, rather than concurrently. However, like the Repeatable Read level, applications using this level must be prepared to retry transactions due to serialization failures. In fact, this isolation level works exactly the same as Repeatable Read except that it also monitors for conditions which could make execution of a concurrent set of serializable transactions behave in a manner inconsistent with all possible serial (one at a time) executions of those transactions. This monitoring does not introduce any blocking beyond that present in repeatable read, but there is some overhead to the monitoring, and detection of the conditions which could cause a serialization anomaly will trigger a serialization failure.\n\nAs an example, consider a table mytab, initially containing:",
+   "cited_by_development_claims": false
+  }
+ },
+ "examples": [
+  {
+   "id": "CE01",
+   "split": "dev",
+   "claim": "SQLite releases since version 3.6.17 (10 August 2009) have 100% branch test coverage.",
+   "subquestion": "What are verifiable facts about SQLite (versions, dates, limits, licence)?",
+   "evidence": [
+    {
+     "passage": "wikipedia_sqlite:P16",
+     "quote": "Starting with the August 10, 2009 release of SQLite 3.6.17, SQLite releases have 100% branch test coverage"
+    }
+   ],
+   "tags": [
+    "date_qualified"
+   ],
+   "synthetic": null,
+   "ambiguity": null,
+   "rule": null,
+   "proposed": {
+    "label": "supported",
+    "status": "provisional",
+    "proposed_by": "language model (Claude), not a human reviewer",
+    "rationale": "The quote states the date, the version and the coverage figure; the claim repeats exactly those."
+   }
+  },
+  {
+   "id": "CE02",
+   "split": "dev",
+   "claim": "SQLite performs write operations one after another because of its serverless design.",
+   "subquestion": "How does each engine handle concurrency and transactions?",
+   "evidence": [
+    {
+     "passage": "wikipedia_sqlite:P9",
+     "quote": "due to the serverless design, writes can only be performed sequentially"
+    }
+   ],
+   "tags": [],
+   "synthetic": null,
+   "ambiguity": null,
+   "rule": null,
+   "proposed": {
+    "label": "supported",
+    "status": "provisional",
+    "proposed_by": "language model (Claude), not a human reviewer",
+    "rationale": "The passage states writes are sequential and ties that to the serverless design."
+   }
+  },
+  {
+   "id": "CE03",
+   "split": "dev",
+   "claim": "Read Committed is PostgreSQL's default transaction isolation level.",
+   "subquestion": "What does the PostgreSQL manual say about transaction isolation and concurrency?",
+   "evidence": [
+    {
+     "passage": "postgresql_docs:P5",
+     "quote": "Read Committed is the default isolation level in PostgreSQL."
+    }
+   ],
+   "tags": [],
+   "synthetic": null,
+   "ambiguity": null,
+   "rule": null,
+   "proposed": {
+    "label": "supported",
+    "status": "provisional",
+    "proposed_by": "language model (Claude), not a human reviewer",
+    "rationale": "Direct statement in the manual."
+   }
+  },
+  {
+   "id": "CE04",
+   "split": "dev",
+   "claim": null,
+   "subquestion": "How does each engine handle concurrency and transactions?",
+   "evidence": [
+    {
+     "passage": "tinybird:P12",
+     "quote": null,
+     "quote_sha256": "2d3846fac92e6cd1995aa17a3469b6181f1b84a775ff4e930d2ba240ffb3c3b1",
+     "quote_chars": 105
+    }
+   ],
+   "tags": [
+    "attribution_correct"
+   ],
+   "synthetic": null,
+   "ambiguity": null,
+   "rule": null,
+   "proposed": {
+    "label": "supported",
+    "status": "provisional",
+    "proposed_by": "language model (Claude), not a human reviewer",
+    "rationale": "The claim attributes the statement to Tinybird, which is the author of the passage."
+   },
+   "evidence_withheld": true,
+   "claim_sha256_full_evidence": "6954432c256570645f3adfb0c0efd6775260062b89a7c4f51cac3f6d7834a3f4",
+   "claim_withheld": true,
+   "claim_sha256": "97558fd8dfb3159dbe34163c2303305fb201c2f7dbb37a10007d42ed5b56ba0b",
+   "claim_chars": 104
+  },
+  {
+   "id": "CE05",
+   "split": "heldout",
+   "claim": "The maximum supported size of an SQLite database file is 281 terabytes.",
+   "subquestion": "What are verifiable facts about SQLite (versions, dates, limits, licence)?",
+   "evidence": [
+    {
+     "passage": "wikipedia_sqlite:P14",
+     "quote": "The maximum supported size for an SQLite database file is 281 terabytes."
+    }
+   ],
+   "tags": [
+    "number"
+   ],
+   "synthetic": null,
+   "ambiguity": null,
+   "rule": null,
+   "proposed": {
+    "label": "supported",
+    "status": "provisional",
+    "proposed_by": "language model (Claude), not a human reviewer",
+    "rationale": "Same figure and unit as the passage."
+   }
+  },
+  {
+   "id": "CE06",
+   "split": "dev",
+   "claim": "DataCamp describes PostgreSQL as operating on a client-server model that needs a separate server process.",
+   "subquestion": "How does each engine handle concurrency and transactions?",
+   "evidence": [
+    {
+     "passage": "datacamp:P11",
+     "quote": null,
+     "quote_sha256": "4ee582e9c2f06ec305939346a887da6cb7548532954629856880602c70553be2",
+     "quote_chars": 179
+    }
+   ],
+   "tags": [
+    "attribution_correct"
+   ],
+   "synthetic": null,
+   "ambiguity": null,
+   "rule": null,
+   "proposed": {
+    "label": "supported",
+    "status": "provisional",
+    "proposed_by": "language model (Claude), not a human reviewer",
+    "rationale": "Restates the passage and names its source."
+   },
+   "evidence_withheld": true,
+   "claim_sha256_full_evidence": "ac8b08147acdeb17eaf9d064a89d8b5bd01762cf32c68283646c49595597f3cc"
+  },
+  {
+   "id": "CE07",
+   "split": "dev",
+   "claim": "PostgreSQL's predicate locks, used for Serializable transactions, do not cause any blocking.",
+   "subquestion": "What does the PostgreSQL manual say about transaction isolation and concurrency?",
+   "evidence": [
+    {
+     "passage": "postgresql_docs:P21",
+     "quote": "In PostgreSQL these locks do not cause any blocking and therefore can not play any part in causing a deadlock."
+    }
+   ],
+   "tags": [],
+   "synthetic": null,
+   "ambiguity": null,
+   "rule": null,
+   "proposed": {
+    "label": "supported",
+    "status": "provisional",
+    "proposed_by": "language model (Claude), not a human reviewer",
+    "rationale": "The passage says exactly this about the predicate locks it just introduced."
+   }
+  },
+  {
+   "id": "CE08",
+   "split": "dev",
+   "claim": "Wikipedia's infobox for SQLite lists 2004-06-18 as its initial release.",
+   "subquestion": "What are verifiable facts about SQLite (versions, dates, limits, licence)?",
+   "evidence": [
+    {
+     "passage": "wikipedia_sqlite:P1",
+     "quote": "Initial release\n\n2004-06-18"
+    }
+   ],
+   "tags": [
+    "date_qualified",
+    "conflicting_within_source"
+   ],
+   "synthetic": null,
+   "ambiguity": "Elsewhere on the same Wikipedia page (a passage the verifier does not receive for this claim) version 1.0 is dated August 2000. Under R1 that is outside the evidence; a reviewer who feels the claim is misleading anyway should say so in the note.",
+   "rule": "R1",
+   "proposed": {
+    "label": "supported",
+    "status": "provisional",
+    "proposed_by": "language model (Claude), not a human reviewer",
+    "rationale": "The shown text lists 2004-06-18 as the initial release and the claim only reports what the infobox lists."
+   }
+  },
+  {
+   "id": "CE09",
+   "split": "heldout",
+   "claim": "A DEV Community post says Postgres uses MVCC, so readers do not block writers and vice versa.",
+   "subquestion": "How does each engine handle concurrency and transactions?",
+   "evidence": [
+    {
+     "passage": "devto:P2",
+     "quote": null,
+     "quote_sha256": "14df34718fc0aada4a1d15c4206ebf5215af6e04863b0677a18b4b05c83ba686",
+     "quote_chars": 107
+    }
+   ],
+   "tags": [
+    "attribution_correct"
+   ],
+   "synthetic": null,
+   "ambiguity": null,
+   "rule": null,
+   "proposed": {
+    "label": "supported",
+    "status": "provisional",
+    "proposed_by": "language model (Claude), not a human reviewer",
+    "rationale": "Restates the post's sentence and attributes it to the post."
+   },
+   "evidence_withheld": true,
+   "claim_sha256_full_evidence": "b2ffdd5902e2ddc2023cf8eb189e2473d057ce9417f28da746a6066999631e7c"
+  },
+  {
+   "id": "CE10",
+   "split": "dev",
+   "claim": null,
+   "subquestion": "How does each engine handle concurrency and transactions?",
+   "evidence": [
+    {
+     "passage": "datacamp:P5",
+     "quote": null,
+     "quote_sha256": "849be5cb8a58e4f427bd9dd0ab012e079161f95d6cf224866fc9f750cca22b69",
+     "quote_chars": 75
+    }
+   ],
+   "tags": [
+    "attribution_correct",
+    "source_claim_not_checked"
+   ],
+   "synthetic": null,
+   "ambiguity": null,
+   "rule": null,
+   "proposed": {
+    "label": "supported",
+    "status": "provisional",
+    "proposed_by": "language model (Claude), not a human reviewer",
+    "rationale": "The claim reports DataCamp's statement as DataCamp's, which the passage supports. Whether the statement is historically true is outside the evidence and is not being judged."
+   },
+   "evidence_withheld": true,
+   "claim_sha256_full_evidence": "92675183f29399691d50cfda28ad602855f6a7530054a0d0c2e45ae38f70a331",
+   "claim_withheld": true,
+   "claim_sha256": "a94697a0f7c546373c7f15ad327ea0c258150d35007a8ac3e128abd55fbd7a19",
+   "claim_chars": 91
+  },
+  {
+   "id": "CE11",
+   "split": "dev",
+   "claim": "SQLite allows concurrent reads and writes with write-ahead logging, and its database files can be at most 281 terabytes.",
+   "subquestion": "How does each engine handle concurrency and transactions?",
+   "evidence": [
+    {
+     "passage": "wikipedia_sqlite:P9",
+     "quote": "relaxed in version 3.7 as write-ahead logging (WAL) enables concurrent reads and writes"
+    }
+   ],
+   "tags": [
+    "compound"
+   ],
+   "synthetic": null,
+   "ambiguity": null,
+   "rule": null,
+   "proposed": {
+    "label": "partially_supported",
+    "status": "provisional",
+    "proposed_by": "language model (Claude), not a human reviewer",
+    "rationale": "The WAL half is supported by the cited passage; the 281 TB half is not in that passage."
+   }
+  },
+  {
+   "id": "CE12",
+   "split": "dev",
+   "claim": "Read Committed is PostgreSQL's default isolation level and it prevents phantom reads.",
+   "subquestion": "What does the PostgreSQL manual say about transaction isolation and concurrency?",
+   "evidence": [
+    {
+     "passage": "postgresql_docs:P5",
+     "quote": "Read Committed is the default isolation level in PostgreSQL."
+    }
+   ],
+   "tags": [
+    "compound"
+   ],
+   "synthetic": null,
+   "ambiguity": "The shown text says two successive SELECTs can see different data, which implies phantom reads are possible but does not say so. R3 needs an explicit statement, so the second half is not established rather than contradicted, and R4 gives partially_supported.",
+   "rule": "R4",
+   "proposed": {
+    "label": "partially_supported",
+    "status": "provisional",
+    "proposed_by": "language model (Claude), not a human reviewer",
+    "rationale": "The default-level half is supported. Nothing cited says Read Committed prevents phantom reads, and the passage notes successive SELECTs can see different data."
+   }
+  },
+  {
+   "id": "CE13",
+   "split": "dev",
+   "claim": "SQLite is in the public domain and accepts contributions from anyone.",
+   "subquestion": "What are verifiable facts about SQLite (versions, dates, limits, licence)?",
+   "evidence": [
+    {
+     "passage": "wikipedia_sqlite:P15",
+     "quote": "SQLite is public domain, but not \"open-contribution\""
+    }
+   ],
+   "tags": [
+    "compound"
+   ],
+   "synthetic": null,
+   "ambiguity": null,
+   "rule": "R4",
+   "proposed": {
+    "label": "partially_supported",
+    "status": "provisional",
+    "proposed_by": "language model (Claude), not a human reviewer",
+    "rationale": "Public-domain half supported; the passage says the project is NOT open-contribution, which contradicts the second half."
+   }
+  },
+  {
+   "id": "CE14",
+   "split": "heldout",
+   "claim": "Tinybird says SQLite's single-writer constraint becomes a bottleneck for concurrent writes and that SQLite cannot be used in production.",
+   "subquestion": "When is each engine recommended, and by whom?",
+   "evidence": [
+    {
+     "passage": "tinybird:P21",
+     "quote": null,
+     "quote_sha256": "f5d027a1986bd5e1f83a7b7f90966f9d5cc5eb87e36367fefbcb37b783596141",
+     "quote_chars": 83
+    }
+   ],
+   "tags": [
+    "compound",
+    "attribution_correct"
+   ],
+   "synthetic": null,
+   "ambiguity": null,
+   "rule": null,
+   "proposed": {
+    "label": "partially_supported",
+    "status": "provisional",
+    "proposed_by": "language model (Claude), not a human reviewer",
+    "rationale": "The bottleneck half is supported; the 'cannot be used in production' half is not stated in the cited passage."
+   },
+   "evidence_withheld": true,
+   "claim_sha256_full_evidence": "b00f1e692621b85ecc7bc81c618cc30a316ec82cbfb57f3d8652b5ef7eba613d"
+  },
+  {
+   "id": "CE15",
+   "split": "dev",
+   "claim": "The PostgreSQL manual says raising max_pred_locks_per_transaction avoids extra serialization failures when the predicate lock table is short of memory, and that applications should always use index scans.",
+   "subquestion": "What does the PostgreSQL manual say about transaction isolation and concurrency?",
+   "evidence": [
+    {
+     "passage": "postgresql_docs:P26",
+     "quote": "You can avoid this by increasing max_pred_locks_per_transaction, max_pred_locks_per_relation, and/or max_pred_locks_per_page."
+    }
+   ],
+   "tags": [
+    "compound",
+    "recommendation_overstated"
+   ],
+   "synthetic": null,
+   "ambiguity": null,
+   "rule": null,
+   "proposed": {
+    "label": "partially_supported",
+    "status": "provisional",
+    "proposed_by": "language model (Claude), not a human reviewer",
+    "rationale": "First half supported. The manual says it 'may be helpful to encourage the use of index scans', not that applications should always use them."
+   }
+  },
+  {
+   "id": "CE16",
+   "split": "dev",
+   "claim": "The SQLite library has 156,000 lines of source code, and its test suites add up to 920 million lines of test code.",
+   "subquestion": "What are verifiable facts about SQLite (versions, dates, limits, licence)?",
+   "evidence": [
+    {
+     "passage": "wikipedia_sqlite:P16",
+     "quote": "The SQLite library has 156,000 lines of source code, while all the test suites combined add up to 92 million lines of test code."
+    }
+   ],
+   "tags": [
+    "compound",
+    "number"
+   ],
+   "synthetic": {
+    "kind": "changed_quantity",
+    "detail": "92 million lines of test code was changed to 920 million in the second half of a two-part claim."
+   },
+   "ambiguity": null,
+   "rule": null,
+   "proposed": {
+    "label": "partially_supported",
+    "status": "provisional",
+    "proposed_by": "language model (Claude), not a human reviewer",
+    "rationale": "The source-code figure matches; the test-code figure is altered (92 million became 920 million)."
+   }
+  },
+  {
+   "id": "CE17",
+   "split": "heldout",
+   "claim": "Postgres is designed for scale, handling terabytes of data and thousands of concurrent connections, and therefore always outperforms SQLite.",
+   "subquestion": "How does each engine handle concurrency and transactions?",
+   "evidence": [
+    {
+     "passage": "devto:P4",
+     "quote": null,
+     "quote_sha256": "e82581f9451dfca61f90cff38fe56e84b34776d56cb5d502bfce7031a2f3d8d1",
+     "quote_chars": 128
+    }
+   ],
+   "tags": [
+    "compound",
+    "overgeneralization"
+   ],
+   "synthetic": null,
+   "ambiguity": null,
+   "rule": null,
+   "proposed": {
+    "label": "partially_supported",
+    "status": "provisional",
+    "proposed_by": "language model (Claude), not a human reviewer",
+    "rationale": "The scale statements are supported; 'always outperforms SQLite' is not in the passage."
+   },
+   "evidence_withheld": true,
+   "claim_sha256_full_evidence": "20b5285fe5f03183785af066d9636f199400146e562562738e712faae12bdfae"
+  },
+  {
+   "id": "CE18",
+   "split": "dev",
+   "claim": "Logz.io lists Facebook, Google and Apple as key SQLite customers and says SQLite's paid professional support is provided by Oracle.",
+   "subquestion": "What are verifiable facts about SQLite (versions, dates, limits, licence)?",
+   "evidence": [
+    {
+     "passage": "logz:P4",
+     "quote": null,
+     "quote_sha256": "c9300981c1a8d5e4ebf980bb4469b8cbc4492bf7f4361d2e6e2202798bc70e99",
+     "quote_chars": 68
+    }
+   ],
+   "tags": [
+    "compound",
+    "attribution_correct"
+   ],
+   "synthetic": {
+    "kind": "added_unsupported_detail",
+    "detail": "'provided by Oracle' was added to a true statement; the passage names no provider."
+   },
+   "ambiguity": null,
+   "rule": null,
+   "proposed": {
+    "label": "partially_supported",
+    "status": "provisional",
+    "proposed_by": "language model (Claude), not a human reviewer",
+    "rationale": "Customer list supported; the passage says paid professional support is offered but does not name Oracle."
+   },
+   "evidence_withheld": true,
+   "claim_sha256_full_evidence": "f8bafa930279338e22de9372ada9b57ce446e832a7ce5bf2b7164ee9d6d6e492"
+  },
+  {
+   "id": "CE19",
+   "split": "heldout",
+   "claim": "SQLite is zero-configuration, so it has no access control of any kind.",
+   "subquestion": "How does each engine handle concurrency and transactions?",
+   "evidence": [
+    {
+     "passage": "wikipedia_sqlite:P8",
+     "quote": "Access control is handled through the file-system permissions of the database file."
+    }
+   ],
+   "tags": [
+    "compound",
+    "negation_added"
+   ],
+   "synthetic": {
+    "kind": "added_unsupported_detail",
+    "detail": "'so it has no access control of any kind' was appended to a true statement."
+   },
+   "ambiguity": "One part is supported (zero-configuration) and one is explicitly contradicted (file-system permissions are access control). R4: partially_supported, not contradicted.",
+   "rule": "R4",
+   "proposed": {
+    "label": "partially_supported",
+    "status": "provisional",
+    "proposed_by": "language model (Claude), not a human reviewer",
+    "rationale": "Zero-configuration is supported by the passage; 'no access control of any kind' is contradicted by file-system-permission access control."
+   }
+  },
+  {
+   "id": "CE20",
+   "split": "dev",
+   "claim": "SQLite 3.50.0, released in May 2025, introduced new Unicode functions and a built-in vector search extension.",
+   "subquestion": "What are verifiable facts about SQLite (versions, dates, limits, licence)?",
+   "evidence": [
+    {
+     "passage": "wikipedia_sqlite:P14",
+     "quote": "SQLite 3.50.0 introduced additional features, including new Unicode functions (unistr() and unistr_quote())"
+    }
+   ],
+   "tags": [
+    "compound",
+    "date_qualified"
+   ],
+   "synthetic": {
+    "kind": "added_unsupported_detail",
+    "detail": "'a built-in vector search extension' was appended to a true statement."
+   },
+   "ambiguity": null,
+   "rule": null,
+   "proposed": {
+    "label": "partially_supported",
+    "status": "provisional",
+    "proposed_by": "language model (Claude), not a human reviewer",
+    "rationale": "Release month and Unicode functions are supported (the month is in the same passage); the vector search extension is not mentioned."
+   }
+  },
+  {
+   "id": "CE21",
+   "split": "dev",
+   "claim": "PostgreSQL supports native declarative table partitioning.",
+   "subquestion": "What does the PostgreSQL manual say about transaction isolation and concurrency?",
+   "evidence": [
+    {
+     "passage": "postgresql_docs:P5",
+     "quote": "Read Committed is the default isolation level in PostgreSQL."
+    }
+   ],
+   "tags": [
+    "genuine_but_irrelevant_quote"
+   ],
+   "synthetic": null,
+   "ambiguity": null,
+   "rule": null,
+   "proposed": {
+    "label": "unsupported",
+    "status": "provisional",
+    "proposed_by": "language model (Claude), not a human reviewer",
+    "rationale": "The quote is genuine and about PostgreSQL but says nothing about partitioning."
+   }
+  },
+  {
+   "id": "CE22",
+   "split": "heldout",
+   "claim": "PostgreSQL's maximum database size is 32 terabytes.",
+   "subquestion": "What does the PostgreSQL manual say about transaction isolation and concurrency?",
+   "evidence": [
+    {
+     "passage": "postgresql_docs:P3",
+     "quote": "internally only three distinct isolation levels are implemented"
+    }
+   ],
+   "tags": [
+    "genuine_but_irrelevant_quote",
+    "number"
+   ],
+   "synthetic": null,
+   "ambiguity": null,
+   "rule": null,
+   "proposed": {
+    "label": "unsupported",
+    "status": "provisional",
+    "proposed_by": "language model (Claude), not a human reviewer",
+    "rationale": "A genuine quote about isolation levels; no size limit appears in the cited text."
+   }
+  },
+  {
+   "id": "CE23",
+   "split": "dev",
+   "claim": "SQLite added a NoSQL interface in 2011.",
+   "subquestion": "What are verifiable facts about SQLite (versions, dates, limits, licence)?",
+   "evidence": [
+    {
+     "passage": "wikipedia_sqlite:P6",
+     "quote": "In 2011, Hipp announced his plans to add a NoSQL interface to SQLite"
+    }
+   ],
+   "tags": [
+    "forecast_to_fact",
+    "date_qualified"
+   ],
+   "synthetic": {
+    "kind": "forecast_to_fact",
+    "detail": "'announced his plans to add' was restated as 'added'."
+   },
+   "ambiguity": null,
+   "rule": "R6",
+   "proposed": {
+    "label": "unsupported",
+    "status": "provisional",
+    "proposed_by": "language model (Claude), not a human reviewer",
+    "rationale": "The passage reports an announced PLAN in 2011; the claim turns it into a completed event."
+   }
+  },
+  {
+   "id": "CE24",
+   "split": "dev",
+   "claim": "SQLite is used today in the damage-control systems of US Navy destroyers.",
+   "subquestion": "What are verifiable facts about SQLite (versions, dates, limits, licence)?",
+   "evidence": [
+    {
+     "passage": "wikipedia_sqlite:P5",
+     "quote": "Hipp was designing software used for a damage-control system aboard guided-missile destroyers"
+    }
+   ],
+   "tags": [
+    "overreach"
+   ],
+   "synthetic": null,
+   "ambiguity": "The text is about the original contract and says nothing about current use. R3 needs an explicit opposite, so this is unsupported, not contradicted.",
+   "rule": "R3",
+   "proposed": {
+    "label": "unsupported",
+    "status": "provisional",
+    "proposed_by": "language model (Claude), not a human reviewer",
+    "rationale": "The passage describes the context in which SQLite was designed in 2000, not current use by the Navy."
+   }
+  },
+  {
+   "id": "CE25",
+   "split": "dev",
+   "claim": "The PostgreSQL manual recommends Repeatable Read over Serializable for new applications.",
+   "subquestion": "When is each engine recommended, and by whom?",
+   "evidence": [
+    {
+     "passage": "postgresql_docs:P17",
+     "quote": "To retain the legacy Serializable behavior, Repeatable Read should now be requested."
+    }
+   ],
+   "tags": [
+    "attribution_overreach"
+   ],
+   "synthetic": null,
+   "ambiguity": null,
+   "rule": null,
+   "proposed": {
+    "label": "unsupported",
+    "status": "provisional",
+    "proposed_by": "language model (Claude), not a human reviewer",
+    "rationale": "The manual says how to keep the legacy behaviour; it does not recommend one level over another for new applications."
+   }
+  },
+  {
+   "id": "CE26",
+   "split": "dev",
+   "claim": "The SQLite library is under 300 KB in every configuration.",
+   "subquestion": "What are verifiable facts about SQLite (versions, dates, limits, licence)?",
+   "evidence": [
+    {
+     "passage": "logz:P2",
+     "quote": null,
+     "quote_sha256": "fa31c081a734745beb76400499f97ff1431f2a549f640a31028132edd1bec9b9",
+     "quote_chars": 50
+    }
+   ],
+   "tags": [
+    "changed_quantity",
+    "number"
+   ],
+   "synthetic": {
+    "kind": "changed_quantity",
+    "detail": "600 KB with a 'can easily be' qualification became 300 KB in every configuration."
+   },
+   "ambiguity": null,
+   "rule": null,
+   "proposed": {
+    "label": "unsupported",
+    "status": "provisional",
+    "proposed_by": "language model (Claude), not a human reviewer",
+    "rationale": "The source gives a figure under 600 KB (wording withheld); it gives no 300 KB figure and no 'every configuration' claim."
+   },
+   "evidence_withheld": true,
+   "claim_sha256_full_evidence": "eab8f0d7c8c965e8faae7e0427ff9d96bef6f24cf0a09c66d3d81f6734086a50"
+  },
+  {
+   "id": "CE27",
+   "split": "heldout",
+   "claim": "Facebook is SQLite's largest customer.",
+   "subquestion": "What are verifiable facts about SQLite (versions, dates, limits, licence)?",
+   "evidence": [
+    {
+     "passage": "logz:P4",
+     "quote": null,
+     "quote_sha256": "c9300981c1a8d5e4ebf980bb4469b8cbc4492bf7f4361d2e6e2202798bc70e99",
+     "quote_chars": 68
+    }
+   ],
+   "tags": [
+    "ranking_added"
+   ],
+   "synthetic": null,
+   "ambiguity": "Revised from unsupported before any human review: the central fact (Facebook is a key customer) is established, only the ranking is not (R5).",
+   "rule": "R5",
+   "proposed": {
+    "label": "partially_supported",
+    "status": "provisional",
+    "proposed_by": "language model (Claude), not a human reviewer",
+    "rationale": "The text establishes that Facebook is one of three key customers; 'largest' is a ranking it does not give."
+   },
+   "evidence_withheld": true,
+   "claim_sha256_full_evidence": "f8ee05f6ee963b5bb2dfb1f3f55bff90525abc55c29203bd21d1942130b179a1"
+  },
+  {
+   "id": "CE28",
+   "split": "dev",
+   "claim": "SQLite can handle at most 100,000 requests a day.",
+   "subquestion": "How does each engine handle concurrency and transactions?",
+   "evidence": [
+    {
+     "passage": "logz:P2",
+     "quote": null,
+     "quote_sha256": "bb5cd403ea42c73720918bd9ddebf1ce198899f6a5b337825a22e928360793f1",
+     "quote_chars": 54
+    }
+   ],
+   "tags": [
+    "qualification_dropped",
+    "number"
+   ],
+   "synthetic": {
+    "kind": "dropped_qualification",
+    "detail": "'~', 'low-to-medium traffic' and 'use case' were replaced by 'at most'."
+   },
+   "ambiguity": null,
+   "rule": null,
+   "proposed": {
+    "label": "unsupported",
+    "status": "provisional",
+    "proposed_by": "language model (Claude), not a human reviewer",
+    "rationale": "The passage gives ~100K requests a day as a typical use case for low-to-medium traffic sites, not as a maximum."
+   },
+   "evidence_withheld": true,
+   "claim_sha256_full_evidence": "4a99f15232da3ad8954bea0fe81de064c159d9b2de57c73b3c6bc4979db2f7cc"
+  },
+  {
+   "id": "CE29",
+   "split": "heldout",
+   "claim": "SQLite supports full-text search through the FTS5 extension.",
+   "subquestion": "What are verifiable facts about SQLite (versions, dates, limits, licence)?",
+   "evidence": [
+    {
+     "passage": "wikipedia_sqlite:P16",
+     "quote": "SQLite uses automated regression testing prior to each release."
+    }
+   ],
+   "tags": [
+    "genuine_but_irrelevant_quote",
+    "true_but_unsupported"
+   ],
+   "synthetic": null,
+   "ambiguity": null,
+   "rule": null,
+   "proposed": {
+    "label": "unsupported",
+    "status": "provisional",
+    "proposed_by": "language model (Claude), not a human reviewer",
+    "rationale": "A genuine quote about testing. The claim happens to be commonly true, and appears elsewhere on the same page, but the CITED text does not support it; the verifier judges the cited evidence only."
+   }
+  },
+  {
+   "id": "CE30",
+   "split": "dev",
+   "claim": "Tinybird says teams should always run Postgres locally through Docker.",
+   "subquestion": "When is each engine recommended, and by whom?",
+   "evidence": [
+    {
+     "passage": "tinybird:P18",
+     "quote": null,
+     "quote_sha256": "8e95b31a45c26eedc16e85f28c9592ec33e4488320b80fd35754ad73a094d567",
+     "quote_chars": 81
+    }
+   ],
+   "tags": [
+    "recommendation_overstated",
+    "attribution_correct"
+   ],
+   "synthetic": null,
+   "ambiguity": "Revised from unsupported before any human review: the suggestion itself is established, only 'always' is not (R5).",
+   "rule": "R5",
+   "proposed": {
+    "label": "partially_supported",
+    "status": "provisional",
+    "proposed_by": "language model (Claude), not a human reviewer",
+    "rationale": "Tinybird does suggest running Postgres locally via Docker (the central fact); it offers it as 'a useful middle ground', not as something teams should always do."
+   },
+   "evidence_withheld": true,
+   "claim_sha256_full_evidence": "1146c3db27e139c8c139d3a752d0c1359b14b95f552cd7f6f79594b39a5bcd9f"
+  },
+  {
+   "id": "CE31",
+   "split": "dev",
+   "claim": "DataCamp names SQLite as the winner for ACID compliance.",
+   "subquestion": "How does each engine handle concurrency and transactions?",
+   "evidence": [
+    {
+     "passage": "datacamp:P11",
+     "quote": null,
+     "quote_sha256": "875c257f11565f2a26f51d51ba96f59415d74d941fed9bb7f10a6ea65d695647",
+     "quote_chars": 131
+    }
+   ],
+   "tags": [
+    "swapped_entity",
+    "attribution_correct"
+   ],
+   "synthetic": {
+    "kind": "swapped_entity",
+    "detail": "PostgreSQL was replaced by SQLite as the winner."
+   },
+   "ambiguity": null,
+   "rule": null,
+   "proposed": {
+    "label": "contradicted",
+    "status": "provisional",
+    "proposed_by": "language model (Claude), not a human reviewer",
+    "rationale": "The same passage names PostgreSQL as the winner for ACID compliance."
+   },
+   "evidence_withheld": true,
+   "claim_sha256_full_evidence": "7c3254ef9d74b405762f9129760b89ff95602651c7a7a0f54709eb6e53635b52"
+  },
+  {
+   "id": "CE32",
+   "split": "dev",
+   "claim": "PostgreSQL's Serializable isolation level adds extra blocking on top of Repeatable Read.",
+   "subquestion": "What does the PostgreSQL manual say about transaction isolation and concurrency?",
+   "evidence": [
+    {
+     "passage": "postgresql_docs:P18",
+     "quote": "This monitoring does not introduce any blocking beyond that present in repeatable read"
+    }
+   ],
+   "tags": [
+    "negation"
+   ],
+   "synthetic": {
+    "kind": "negation",
+    "detail": "The manual's negated statement was asserted positively."
+   },
+   "ambiguity": null,
+   "rule": null,
+   "proposed": {
+    "label": "contradicted",
+    "status": "provisional",
+    "proposed_by": "language model (Claude), not a human reviewer",
+    "rationale": "The manual says the monitoring does NOT introduce blocking beyond Repeatable Read."
+   }
+  },
+  {
+   "id": "CE33",
+   "split": "heldout",
+   "claim": "SQLite has built-in streaming replication.",
+   "subquestion": "How does each engine handle concurrency and transactions?",
+   "evidence": [
+    {
+     "passage": "devto:P4",
+     "quote": null,
+     "quote_sha256": "c04e6bb1721a2df1a5ca501e0a7d969b173de0cf0afe7559ff16c0cf903d1975",
+     "quote_chars": 26
+    }
+   ],
+   "tags": [
+    "negation"
+   ],
+   "synthetic": {
+    "kind": "negation",
+    "detail": "'None built-in' was asserted as 'has built-in'."
+   },
+   "ambiguity": null,
+   "rule": null,
+   "proposed": {
+    "label": "contradicted",
+    "status": "provisional",
+    "proposed_by": "language model (Claude), not a human reviewer",
+    "rationale": "The comparison table lists replication for SQLite as 'None built-in'."
+   },
+   "evidence_withheld": true,
+   "claim_sha256_full_evidence": "523a4bb24ff7cba107c389b24d1d96040690bbad28eb440da45243fe8910febc"
+  },
+  {
+   "id": "CE34",
+   "split": "dev",
+   "claim": "PostgreSQL is released under the GPL.",
+   "subquestion": "What are verifiable facts about SQLite (versions, dates, limits, licence)?",
+   "evidence": [
+    {
+     "passage": "datacamp:P11",
+     "quote": null,
+     "quote_sha256": "0965b927f21b665f2378e82029cfac652451e20651c7d1bb9339aa053a20a70c",
+     "quote_chars": 83
+    }
+   ],
+   "tags": [
+    "swapped_entity"
+   ],
+   "synthetic": {
+    "kind": "swapped_entity",
+    "detail": "'the PostgreSQL License' was replaced by 'the GPL'."
+   },
+   "ambiguity": null,
+   "rule": null,
+   "proposed": {
+    "label": "contradicted",
+    "status": "provisional",
+    "proposed_by": "language model (Claude), not a human reviewer",
+    "rationale": "The passage names the PostgreSQL License, not the GPL."
+   },
+   "evidence_withheld": true,
+   "claim_sha256_full_evidence": "7821bf89c6d38fd975f9a60138d93ef958d5c1b6a322d82dca27d91e08528e2a"
+  },
+  {
+   "id": "CE35",
+   "split": "dev",
+   "claim": "Tinybird states that Postgres is the best database for OLAP.",
+   "subquestion": "When is each engine recommended, and by whom?",
+   "evidence": [
+    {
+     "passage": "tinybird:P21",
+     "quote": null,
+     "quote_sha256": "8008a5b3a1c1055508f72b679abfcfbc17fcb64e96df0cfb0c1ed16db0ab357c",
+     "quote_chars": 43
+    }
+   ],
+   "tags": [
+    "negation",
+    "attribution_correct"
+   ],
+   "synthetic": {
+    "kind": "negation",
+    "detail": "'is not Postgres' was asserted as 'is Postgres'."
+   },
+   "ambiguity": null,
+   "rule": null,
+   "proposed": {
+    "label": "contradicted",
+    "status": "provisional",
+    "proposed_by": "language model (Claude), not a human reviewer",
+    "rationale": "Tinybird says the opposite."
+   },
+   "evidence_withheld": true,
+   "claim_sha256_full_evidence": "8dbe8a238b8a7d6cab18e309b63c8ffe20beaa42bc85feca60ed16c036a78924"
+  },
+  {
+   "id": "CE36",
+   "split": "dev",
+   "claim": "SQLite lets several processes write to the same database file at the same time.",
+   "subquestion": "How does each engine handle concurrency and transactions?",
+   "evidence": [
+    {
+     "passage": "wikipedia_sqlite:P9",
+     "quote": "due to the serverless design, writes can only be performed sequentially"
+    }
+   ],
+   "tags": [
+    "negation"
+   ],
+   "synthetic": {
+    "kind": "negation",
+    "detail": "'writes can only be performed sequentially' was restated as writers being able to write at the same time."
+   },
+   "ambiguity": "The shown passage also says WAL 'enables concurrent reads and writes', which is reads alongside a writer, not several writers. The claim is about several writers writing at once, which the text explicitly rules out ('writes can only be performed sequentially'): R3, contradicted.",
+   "rule": "R3",
+   "proposed": {
+    "label": "contradicted",
+    "status": "provisional",
+    "proposed_by": "language model (Claude), not a human reviewer",
+    "rationale": "Writes are sequential per the passage."
+   }
+  },
+  {
+   "id": "CE37",
+   "split": "dev",
+   "claim": "PostgreSQL internally implements four distinct transaction isolation levels.",
+   "subquestion": "What does the PostgreSQL manual say about transaction isolation and concurrency?",
+   "evidence": [
+    {
+     "passage": "postgresql_docs:P3",
+     "quote": "internally only three distinct isolation levels are implemented"
+    }
+   ],
+   "tags": [
+    "changed_quantity",
+    "number"
+   ],
+   "synthetic": {
+    "kind": "changed_quantity",
+    "detail": "three was changed to four."
+   },
+   "ambiguity": null,
+   "rule": null,
+   "proposed": {
+    "label": "contradicted",
+    "status": "provisional",
+    "proposed_by": "language model (Claude), not a human reviewer",
+    "rationale": "The manual says only three are implemented internally even though four can be requested."
+   }
+  },
+  {
+   "id": "CE38",
+   "split": "heldout",
+   "claim": "SQLite 3.0 was released in June 2001.",
+   "subquestion": "What are verifiable facts about SQLite (versions, dates, limits, licence)?",
+   "evidence": [
+    {
+     "passage": "wikipedia_sqlite:P6",
+     "quote": "In June 2004, SQLite 3.0 added internationalization, manifest typing, and other major improvements"
+    }
+   ],
+   "tags": [
+    "changed_date",
+    "date_qualified"
+   ],
+   "synthetic": {
+    "kind": "changed_date",
+    "detail": "June 2004 was changed to June 2001."
+   },
+   "ambiguity": null,
+   "rule": null,
+   "proposed": {
+    "label": "contradicted",
+    "status": "provisional",
+    "proposed_by": "language model (Claude), not a human reviewer",
+    "rationale": "The passage dates SQLite 3.0 to June 2004."
+   }
+  },
+  {
+   "id": "CE39",
+   "split": "dev",
+   "claim": "SQLite releases have had 100% branch test coverage since the 2019 release of version 3.6.17.",
+   "subquestion": "What are verifiable facts about SQLite (versions, dates, limits, licence)?",
+   "evidence": [
+    {
+     "passage": "wikipedia_sqlite:P16",
+     "quote": "Starting with the August 10, 2009 release of SQLite 3.6.17, SQLite releases have 100% branch test coverage"
+    }
+   ],
+   "tags": [
+    "changed_date",
+    "date_qualified"
+   ],
+   "synthetic": {
+    "kind": "changed_date",
+    "detail": "2009 was changed to 2019."
+   },
+   "ambiguity": null,
+   "rule": null,
+   "proposed": {
+    "label": "contradicted",
+    "status": "provisional",
+    "proposed_by": "language model (Claude), not a human reviewer",
+    "rationale": "The passage gives 10 August 2009, not 2019."
+   }
+  },
+  {
+   "id": "CE40",
+   "split": "dev",
+   "claim": "The SQLite library has 156 million lines of source code.",
+   "subquestion": "What are verifiable facts about SQLite (versions, dates, limits, licence)?",
+   "evidence": [
+    {
+     "passage": "wikipedia_sqlite:P16",
+     "quote": "The SQLite library has 156,000 lines of source code"
+    }
+   ],
+   "tags": [
+    "changed_quantity",
+    "number"
+   ],
+   "synthetic": {
+    "kind": "changed_quantity",
+    "detail": "156,000 was changed to 156 million."
+   },
+   "ambiguity": null,
+   "rule": null,
+   "proposed": {
+    "label": "contradicted",
+    "status": "provisional",
+    "proposed_by": "language model (Claude), not a human reviewer",
+    "rationale": "The passage says 156,000 lines."
+   }
+  }
+ ],
+ "public_export": {
+  "variant": "public-export-v1",
+  "derived_from_dataset_built": "2026-10-21",
+  "withheld_sources": [
+   "datacamp",
+   "devto",
+   "logz",
+   "tinybird"
+  ],
+  "passages_total": 23,
+  "passages_withheld": 9,
+  "passages_retained": 14,
+  "examples_total": 40,
+  "examples_with_withheld_evidence": 15,
+  "examples_with_full_evidence": 25,
+  "claims_withheld": [
+   "CE04",
+   "CE10"
+  ],
+  "hash_policy": "Content that is published can be re-hashed here. Withheld content keeps the hash recorded on the original: text_sha256 / quote_sha256 for passages and quotes, claim_sha256 for a withheld claim text, claim_sha256_full_evidence for the claim-plus-evidence hash that labels and the split lock use. Those retained hashes cannot be verified from this export.",
+  "note": "Text of the withheld passages is not published. Hashes below let a holder of the full evidence verify it. Claim texts (except the two in claims_withheld), proposed labels, split assignment and the split lock are unchanged; for an example with withheld evidence the claim hash recorded on the full evidence is used, so human labels and the held-out lock keep their meaning. Anything that needs the evidence text refuses such an example unless an available-evidence subset is selected explicitly."
+ }
+}

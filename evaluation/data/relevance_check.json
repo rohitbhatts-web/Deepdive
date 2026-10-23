@@ -1,0 +1,85 @@
+{
+  "schema": "deepdive-relevance-check/1",
+  "created": "2026-10-22",
+  "provenance": "AI-assisted development expectations, written BEFORE the run. They are not independent human ground truth, not a labelled test set and not an accuracy measure: a disagreement can mean the expectation is wrong.",
+  "scope": "development only; stored evidence only; no search, no fetch. Held-out questions and examples are not used.",
+  "limits_per_domain": {"max_model_requests": 8, "max_total_output_tokens": 5000, "max_elapsed_seconds": 150, "max_search_queries": 0, "max_page_fetches": 0, "per_call_timeout_seconds": 60},
+  "unavailable": "Original-versus-revision and explicit-revision cases need stored evidence whose document says it replaces an earlier one. Only the networking evidence (stored Q02 runs) has that; the SQLite/PostgreSQL development evidence contains no such wording, so domain databases carries only the off-topic-milestone and non-date cases.",
+  "follow_ups": {
+    "a1a2-v5": {
+      "purpose": "A fresh check of A1 and A2 after two input/handling changes: the semantic verifier no longer receives the question or subquestion (rubric attribution-v5), and the subject backstop no longer rejects a descriptive subject. The expectations are the ones recorded before the first run and are NOT changed; nothing is forced. If the verifier blocks A1 again, A1 is recorded as relevance not exercised.",
+      "cases": ["A1-original-vs-revision", "A2-explicit-revision-question"],
+      "limits": {"max_model_requests": 6, "max_total_output_tokens": 3000, "max_elapsed_seconds": 90, "max_search_queries": 0, "max_page_fetches": 0, "per_call_timeout_seconds": 60},
+      "result": "evaluation/results/relevance_check_a1a2_v5.json",
+      "scratch": "data/relevance-check-a1a2-v5.db"
+    }
+  },
+  "domains": [
+    {
+      "id": "networking",
+      "evidence": "stored Q02 evidence in data/q02-compact-continuation.db (claims 6, 5 and 3, with their stored quotes and passages; the Q02 question is a development question)",
+      "cases": [
+        {
+          "id": "A1-original-vs-revision",
+          "kind": "original publication versus a later revision",
+          "stored_claim": 6,
+          "subquestion": "When was the original HTTP/2 specification first published?",
+          "requirement": "Original publication date of the HTTP/2 specification",
+          "why": "The claim dates a document whose passage says it obsoletes earlier ones. It does not say it is a revision and does not give the original date.",
+          "expect": {"claim_role": "not_direct_answer", "requirement": "not_addressed", "section": "no_direct_answer"}
+        },
+        {
+          "id": "A2-explicit-revision-question",
+          "kind": "an explicit question about the revised document's publication date",
+          "stored_claim": 6,
+          "subquestion": "When was the current revision of the HTTP/2 specification published?",
+          "requirement": "Publication date of the current revision of the HTTP/2 specification",
+          "why": "The same claim now answers exactly what is asked; the revision restriction must not apply.",
+          "expect": {"claim_role": "direct_answer", "requirement": "addressed", "section": "answered"}
+        },
+        {
+          "id": "A3-off-topic-milestone",
+          "kind": "a supported but off-topic milestone",
+          "stored_claim": 5,
+          "subquestion": "What is the publication date of the HTTP/3 specification as an RFC?",
+          "requirement": "RFC publication date for HTTP/3",
+          "why": "The claim is supported (a 2018 renaming proposal) but is not the RFC publication date.",
+          "expect": {"claim_role": "not_direct_answer", "requirement": "not_addressed", "section": "no_direct_answer"}
+        },
+        {
+          "id": "A4-direct-non-date",
+          "kind": "a supported direct answer to a non-date question",
+          "stored_claim": 3,
+          "subquestion": "Which transport layer protocol does HTTP/3 use?",
+          "requirement": "Name of the transport protocol used by HTTP/3",
+          "why": "The claim states the protocol by name.",
+          "expect": {"claim_role": "direct_answer", "requirement": "addressed", "section": "answered"}
+        }
+      ]
+    },
+    {
+      "id": "databases",
+      "evidence": "development claim-evidence examples CE01 and CE03 (SQLite and PostgreSQL pages, stored passages and quotes in evaluation/data/claim_evidence.json)",
+      "cases": [
+        {
+          "id": "B1-off-topic-milestone",
+          "kind": "a supported but off-topic milestone",
+          "example": "CE01",
+          "subquestion": "When was SQLite first released?",
+          "requirement": "Initial release date of SQLite",
+          "why": "The claim is supported but dates a later release (3.6.17) in a statement about test coverage; it does not give the initial release date.",
+          "expect": {"claim_role": "not_direct_answer", "requirement": "not_addressed", "section": "no_direct_answer"}
+        },
+        {
+          "id": "B2-direct-non-date",
+          "kind": "a supported direct answer to a non-date question",
+          "example": "CE03",
+          "subquestion": "What is PostgreSQL's default transaction isolation level?",
+          "requirement": "Default transaction isolation level of PostgreSQL",
+          "why": "The claim names the default level.",
+          "expect": {"claim_role": "direct_answer", "requirement": "addressed", "section": "answered"}
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,98 @@
+{
+ "schema": "deepdive-eval-continuation/1",
+ "what": "Q02 continued once from the stored evidence of pilot attempt 4 (a COPY of its database, data/q02-compact-continuation.db, not committed), retry profile `compact`; 0 searches, 0 fetches; limits 20 requests, 15,000 output tokens, 300 s, 60 s per call; models unchanged",
+ "ran": "2026-10-22 20:15 IST, once, approved; attempt-4 artifacts unchanged",
+ "drafting": {
+  "succeeded": true,
+  "latency_ms": 58500,
+  "per_call_deadline_ms": 60000,
+  "margin_ms": 1500,
+  "claims_drafted": 5,
+  "note": "succeeded 1.5 s inside the 60 s limit; 521 completion tokens, so generation time, not only input size, drives the latency"
+ },
+ "claims": [
+  {
+   "claim_id": 1,
+   "version": 1,
+   "text": "The HTTP/2 specification was published as RFC 9113.",
+   "integrity": "passed",
+   "semantic": "partially_supported",
+   "rubric": "attribution-v3",
+   "verifier_reason": "S5-P1 confirms that the HTTP/2 specification was published as RFC 9113, establishing the RFC number. However, the claim asks for the publication date, and the evidence provides only the RFC number without specifying when RFC 9113 was published."
+  },
+  {
+   "claim_id": 2,
+   "version": 1,
+   "text": "HTTP/2 uses Transport Layer Security (TLS) when identified by the \"h2\" string.",
+   "integrity": "passed",
+   "semantic": "supported",
+   "rubric": "attribution-v3",
+   "verifier_reason": "S1-P11 directly states: 'The string \"h2\" identifies the protocol where HTTP/2 uses Transport Layer Security (TLS)'. This exactly matches the claim that HTTP/2 uses TLS when identified by the \"h2\" string."
+  },
+  {
+   "claim_id": 3,
+   "version": 1,
+   "text": "HTTP/3 uses QUIC as its transport layer protocol.",
+   "integrity": "passed",
+   "semantic": "supported",
+   "rubric": "attribution-v3",
+   "verifier_reason": "S2-P4 directly states that 'HTTP/3 uses QUIC, a transport layer network protocol which uses user space congestion control over the User Datagram Protocol (UDP).' This fully establishes the claim that HTTP/3 uses QUIC as its transport layer protocol."
+  },
+  {
+   "claim_id": 4,
+   "version": 1,
+   "text": "HTTP/3 differs from HTTP/2 by using QUIC over UDP instead of TCP, which provides native multiplexing and avoids head-of-line blocking.",
+   "integrity": "passed",
+   "semantic": "supported",
+   "rubric": "attribution-v3",
+   "verifier_reason": "S2-P4 establishes that HTTP/3 uses QUIC over UDP while HTTP/2 uses TCP, and that QUIC provides native multiplexing avoiding head-of-line blocking where lost packets only impact affected streams."
+  },
+  {
+   "claim_id": 5,
+   "version": 1,
+   "text": "The article describes that on 28 October 2018, Mark Nottingham proposed renaming HTTP-over-QUIC to HTTP/3.",
+   "integrity": "passed",
+   "semantic": "supported",
+   "rubric": "attribution-v3",
+   "verifier_reason": "S2-P2 directly states: 'On 28 October 2018 in a mailing list discussion, Mark Nottingham, Chair of the IETF HTTP and QUIC Working Groups, proposed renaming HTTP-over-QUIC to HTTP/3.' This exactly matches the claim's assertion about the date, the person, and the action taken."
+  },
+  {
+   "claim_id": 6,
+   "version": 2,
+   "text": "The HTTP/2 specification was published as RFC 9113 in June 2022.",
+   "integrity": "passed",
+   "semantic": "supported",
+   "rubric": "attribution-v3",
+   "verifier_reason": "S1-P0 explicitly states that RFC 9113 is the HTTP/2 specification and was published in June 2022. The cited passage confirms 'RFC 9113', 'HTTP/2', and 'Published: June 2022'."
+  }
+ ],
+ "publication_date_vs_revision": "claim 6 states HTTP/2 was published as RFC 9113 in June 2022 and was judged supported under attribution-v3; its cited passage shows Obsoletes: 7540, 8740, i.e. June 2022 is a revision, but neither the claim nor the report says so and the original RFC is not mentioned",
+ "transport_coverage": {
+  "HTTP/3": "claims 3 and 4 (QUIC over UDP, versus TCP) supported by the Wikipedia passage",
+  "HTTP/2": "named only indirectly (claim 4 says HTTP/3 uses QUIC over UDP instead of TCP); the coverage assessment left it unresolved; claim 2 is about TLS"
+ },
+ "report": {
+  "id": 2,
+  "outcome": "claims_with_gaps",
+  "stop_reason": "search budget exhausted (0 of 0 searches used); 5 unmet requirement(s) could not be researched",
+  "corrective_rounds": 1,
+  "claims": 5,
+  "gaps": [
+   "HTTP/3 RFC number and publication date (no claim; the only claim in that section is about a 2018 renaming proposal)",
+   "HTTP/2 transport protocol name (unresolved)",
+   "HTTP/2 publication day (partially)",
+   "how HTTP/2 uses TCP (unresolved)"
+  ]
+ },
+ "usage": {
+  "model_calls": 12,
+  "failed_calls": 1,
+  "failed_reason": "verifier explanation over 500 characters (schema validation), retried once as designed",
+  "prompt_tokens": 32697,
+  "completion_tokens": 3019,
+  "elapsed_seconds": 104.9,
+  "provider_reported_charges_usd": 0.037169,
+  "charged_calls": "12 of 12"
+ },
+ "not_shown": "this single run does not establish answer quality or that the profile is reliable; the drafting call came within 1.5 s of its deadline"
+}

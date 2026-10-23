@@ -1,0 +1,267 @@
+{
+  "schema": "deepdive-eval-questions/1",
+  "created": "2026-10-21",
+  "note": "Answer requirements say what a complete answer must contain. They are NOT expected facts: nothing here asserts what the sources say. 'Scope' fixes the subjects, the question boundary and (where it matters) the date the answer must be anchored to. Split membership is locked in split.lock.json; edit a held-out question and the lock test fails.",
+  "questions": [
+    {
+      "id": "Q01",
+      "split": "dev",
+      "domain": "databases",
+      "question": "What are the main differences between SQLite and PostgreSQL in architecture, concurrency, scalability and transaction support, and when is each one appropriate?",
+      "categories": ["factual_comparison", "multi_subject_obligations", "passage_selection_crowd_out", "recommendation_attribution"],
+      "used_for_tuning": true,
+      "tuning_note": "This question drove the Phase 3 and Phase 4 development runs and the passage-selection fix. It is a development question by construction and can never be held out.",
+      "scope": {
+        "subjects": ["SQLite", "PostgreSQL"],
+        "dimensions": ["architecture", "concurrency", "scalability", "transaction support", "appropriate use cases"],
+        "exclusions": ["MySQL and other engines", "benchmark rankings"],
+        "as_of": "current documentation; each source's own date must be stated when a figure or version is given"
+      },
+      "expected_outcome": "answerable",
+      "answer_requirements": [
+        {"id": "R1", "text": "Architecture of each engine (embedded library vs client-server process), stated for BOTH SQLite and PostgreSQL.", "kind": "multi_subject", "subjects": ["SQLite", "PostgreSQL"]},
+        {"id": "R2", "text": "Concurrency model of each engine (how reads and writes interact), stated for BOTH engines.", "kind": "multi_subject", "subjects": ["SQLite", "PostgreSQL"]},
+        {"id": "R3", "text": "Scalability limits or strengths of each engine, stated for BOTH engines.", "kind": "multi_subject", "subjects": ["SQLite", "PostgreSQL"]},
+        {"id": "R4", "text": "Transaction support (isolation levels or guarantees) of each engine, stated for BOTH engines.", "kind": "multi_subject", "subjects": ["SQLite", "PostgreSQL"]},
+        {"id": "R5", "text": "Situations in which each engine is recommended, attributed to the source that recommends it.", "kind": "attribution"}
+      ]
+    },
+    {
+      "id": "Q02",
+      "split": "dev",
+      "domain": "networking",
+      "question": "When were HTTP/2 and HTTP/3 published as RFCs, and how do their transport layers differ?",
+      "categories": ["dates_and_numbers", "factual_comparison", "multi_subject_obligations"],
+      "used_for_tuning": false,
+      "scope": {
+        "subjects": ["HTTP/2", "HTTP/3"],
+        "dimensions": ["RFC number", "publication date", "transport protocol", "head-of-line blocking behaviour"],
+        "exclusions": ["HTTP/1.1 details", "implementation market share"],
+        "as_of": "the RFC text itself; the RFC number and the publication month and year must come from a source"
+      },
+      "expected_outcome": "answerable",
+      "answer_requirements": [
+        {"id": "R1", "text": "RFC number and publication date (month and year) for HTTP/2.", "kind": "date"},
+        {"id": "R2", "text": "RFC number and publication date (month and year) for HTTP/3.", "kind": "date"},
+        {"id": "R3", "text": "The transport protocol each version runs over.", "kind": "multi_subject", "subjects": ["HTTP/2", "HTTP/3"]},
+        {"id": "R4", "text": "How each version handles head-of-line blocking, without mixing up the two layers.", "kind": "multi_subject", "subjects": ["HTTP/2", "HTTP/3"],
+         "beyond_explicit_question": true,
+         "annotation": "The question given to the pipeline asks for RFC publication dates and for how the transport layers differ; it does not mention head-of-line blocking. This requirement asks for more than the question states, so it is scored only under requirements-v1 (annotated 2026-10-22; text and id unchanged)."}
+      ],
+      "requirement_sets": {
+        "requirements-v1": ["R1", "R2", "R3", "R4"],
+        "requirements-v2": ["R1", "R2", "R3"]
+      },
+      "requirement_sets_note": "requirements-v1 is the original set and stays the default; requirements-v2 drops only the requirement annotated beyond_explicit_question. Results are reported under both, never one in place of the other."
+    },
+    {
+      "id": "Q03",
+      "split": "dev",
+      "domain": "energy",
+      "question": "What share of global electricity generation did wind and solar together supply in the most recent full year with published data, and do major sources agree?",
+      "categories": ["conflicting_sources", "dates_and_numbers", "recommendation_attribution"],
+      "used_for_tuning": false,
+      "scope": {
+        "subjects": ["wind and solar share of global electricity generation"],
+        "dimensions": ["figure", "year", "source and definition used"],
+        "exclusions": ["national figures", "capacity (GW) figures presented as generation share"],
+        "as_of": "most recent full calendar year the cited sources report; the year must be named per figure"
+      },
+      "expected_outcome": "answerable_with_conflict",
+      "answer_requirements": [
+        {"id": "R1", "text": "At least two named sources, each with its own wind-plus-solar share figure and the year it refers to.", "kind": "number"},
+        {"id": "R2", "text": "An explicit statement of whether the sources agree, and the reason for any difference (definition, year, scope), each attributed to its source.", "kind": "conflict"},
+        {"id": "R3", "text": "No figure is given without its source and year; figures from different years are not merged into one number.", "kind": "qualification"}
+      ]
+    },
+    {
+      "id": "Q04",
+      "split": "dev",
+      "domain": "security",
+      "question": "What do OWASP and NIST each recommend for storing user passwords: which hashing approaches and what parameters or constraints?",
+      "categories": ["recommendation_attribution", "multi_subject_obligations", "dates_and_numbers"],
+      "used_for_tuning": false,
+      "scope": {
+        "subjects": ["OWASP guidance", "NIST guidance"],
+        "dimensions": ["recommended algorithms", "parameters or minimums", "constraints on verifiers"],
+        "exclusions": ["multi-factor authentication policy", "vendor products"],
+        "as_of": "the current edition of each document; its edition or date must be stated"
+      },
+      "expected_outcome": "answerable",
+      "answer_requirements": [
+        {"id": "R1", "text": "OWASP's recommended hashing approach(es), attributed to OWASP with the document named.", "kind": "attribution"},
+        {"id": "R2", "text": "NIST's recommended approach(es) or requirements for stored verifiers, attributed to NIST with the publication named.", "kind": "attribution"},
+        {"id": "R3", "text": "Any numeric parameters or minimums quoted, each with the body that states it; none presented as a universal rule.", "kind": "number"}
+      ]
+    },
+    {
+      "id": "Q05",
+      "split": "dev",
+      "domain": "finance_private_company",
+      "question": "Has Mistral AI publicly reported a net profit or loss for fiscal year 2024, and if so, what is the figure and which primary source states it?",
+      "categories": ["insufficient_evidence_abstention"],
+      "used_for_tuning": false,
+      "scope": {
+        "subjects": ["Mistral AI"],
+        "dimensions": ["whether a net profit or loss for fiscal year 2024 has been published", "the figure and the primary source that states it", "where the pipeline looked"],
+        "exclusions": ["valuation", "funding rounds", "revenue or profit estimates by third parties presented as company-reported figures"],
+        "as_of": "fiscal year 2024; the date each source was retrieved must be stated"
+      },
+      "expected_outcome": "evidence_seeking",
+      "abstention_expectation": "Whether such a figure is public is NOT assumed. The pipeline must look for primary sources (company statements, annual accounts or filings, registry records). Two outcomes are acceptable and a human decides which occurred: (a) a figure is found in a primary source: the report states it with that source, its date and the fiscal year, and any third-party estimate is labelled as such; or (b) no primary-source figure is found: the report says so, says what kinds of source were searched (from the run's searches), and states no profit or loss figure. Unacceptable: a figure from a secondary source stated as the company's reported result, a figure for a different year or a different quantity (revenue, funding) presented as profit, or a confident answer with no primary source.",
+      "revisions": [
+        {"date": "2026-10-21", "from": {"question": "What was Mistral AI's exact net profit for fiscal year 2024?", "expected_outcome": "abstain_expected", "assumption": "no audited exact net-profit figure is public"},
+         "to": {"expected_outcome": "evidence_seeking"},
+         "reason": "The original wording and its abstention expectation assumed, without checking, that no public figure exists. That assumption was unverified, so the question now asks the pipeline to look, and both a found figure and an honest not-found are scored by a human against the stated criteria.",
+         "status": "Revised before any run or human review. Q05 is a development question, so the held-out set is unaffected. The lock records only held-out items and split membership, so it is unchanged. Nobody has searched for the figure, so whether it exists is still unknown."}
+      ],
+      "answer_requirements": [
+        {"id": "R1", "text": "States whether a primary-source figure for the fiscal year 2024 net profit or loss was found. If found: the figure, the fiscal year, the primary source and its date; if not found: an explicit statement that it was not found, and no figure.", "kind": "evidence_seeking"},
+        {"id": "R2", "text": "Describes where the pipeline looked (the kinds of primary source consulted), consistent with the run's recorded searches.", "kind": "search_record"},
+        {"id": "R3", "text": "Any related figure (funding, revenue, valuation, third-party estimate) is labelled as a different quantity or as a third-party estimate and attributed; none is presented as the company's reported net profit.", "kind": "qualification"}
+      ]
+    },
+    {
+      "id": "Q06",
+      "split": "dev",
+      "domain": "programming_languages",
+      "question": "What problem does Rust's ownership model solve and what are its main restrictions, and how does it differ from garbage collection as used in Java and Go?",
+      "categories": ["compound_claims", "multi_subject_obligations", "factual_comparison"],
+      "used_for_tuning": false,
+      "scope": {
+        "subjects": ["Rust ownership", "Java garbage collection", "Go garbage collection"],
+        "dimensions": ["problem solved", "restrictions on the programmer", "memory-management mechanism", "runtime cost"],
+        "exclusions": ["language popularity", "benchmark rankings"],
+        "as_of": "current language documentation"
+      },
+      "expected_outcome": "answerable",
+      "answer_requirements": [
+        {"id": "R1", "text": "The problem Rust ownership addresses, in one claim per distinct assertion (no single claim bundling several).", "kind": "compound"},
+        {"id": "R2", "text": "Rust's main ownership rules or restrictions, each as its own claim.", "kind": "compound"},
+        {"id": "R3", "text": "How memory is reclaimed in Java and in Go, stated for EACH language separately.", "kind": "multi_subject", "subjects": ["Java", "Go"]},
+        {"id": "R4", "text": "A contrast between ownership and garbage collection that is attributed to a source rather than asserted by the report.", "kind": "attribution"}
+      ]
+    },
+    {
+      "id": "Q07",
+      "split": "dev",
+      "domain": "law_information",
+      "question": "How do the GDPR and the California Consumer Privacy Act (as amended by CPRA) differ in territorial scope and in the maximum administrative fines or penalties?",
+      "categories": ["multi_subject_obligations", "dates_and_numbers", "factual_comparison"],
+      "used_for_tuning": false,
+      "scope": {
+        "subjects": ["GDPR", "CCPA/CPRA"],
+        "dimensions": ["territorial scope", "maximum fines or penalties", "applicability thresholds"],
+        "exclusions": ["advice on whether any particular organisation must comply", "other US state laws"],
+        "as_of": "the current text; any monetary threshold must carry the date or adjustment year of the source"
+      },
+      "expected_outcome": "answerable",
+      "answer_requirements": [
+        {"id": "R1", "text": "Territorial scope of the GDPR.", "kind": "multi_subject", "subjects": ["GDPR"]},
+        {"id": "R2", "text": "Territorial scope or applicability test of the CCPA/CPRA.", "kind": "multi_subject", "subjects": ["CCPA/CPRA"]},
+        {"id": "R3", "text": "Maximum penalty or fine for the GDPR, with the currency and the calculation basis as stated by the source.", "kind": "number"},
+        {"id": "R4", "text": "Penalty amounts for the CCPA/CPRA, with the adjustment year when a figure is inflation-adjusted.", "kind": "number"}
+      ]
+    },
+    {
+      "id": "Q08",
+      "split": "dev",
+      "domain": "automotive_energy",
+      "question": "What do major agencies project for the global electric-vehicle share of new car sales by 2030, and what share was actually reported for the most recent full year?",
+      "categories": ["forecast_vs_fact", "conflicting_sources", "dates_and_numbers"],
+      "used_for_tuning": false,
+      "scope": {
+        "subjects": ["EV share of new car sales: projections and reported actuals"],
+        "dimensions": ["projection by named agency and scenario", "reported actual share and year"],
+        "exclusions": ["single-country figures", "plug-in hybrids unless the source includes them in its EV definition"],
+        "as_of": "the publication date of each projection; the actual figure's year"
+      },
+      "expected_outcome": "answerable_with_conflict",
+      "answer_requirements": [
+        {"id": "R1", "text": "At least one projection for 2030, labelled as a projection, with the agency, the scenario and the publication date.", "kind": "forecast"},
+        {"id": "R2", "text": "A reported actual share for the most recent full year, labelled as a measured figure with its source and year.", "kind": "number"},
+        {"id": "R3", "text": "No projection is stated as an achieved fact, and no actual figure is presented as a forecast.", "kind": "qualification"}
+      ]
+    },
+    {
+      "id": "Q09",
+      "split": "heldout",
+      "domain": "cosmology",
+      "question": "What is the current best estimate of the Hubble constant, and why do different measurement methods disagree?",
+      "categories": ["conflicting_sources", "dates_and_numbers", "recommendation_attribution"],
+      "used_for_tuning": false,
+      "scope": {
+        "subjects": ["Hubble constant measurements"],
+        "dimensions": ["value with uncertainty per method and source", "reasons given for the disagreement"],
+        "exclusions": ["speculative new-physics proposals presented as established"],
+        "as_of": "the publication year of each cited measurement"
+      },
+      "expected_outcome": "answerable_with_conflict",
+      "answer_requirements": [
+        {"id": "R1", "text": "At least two methods or collaborations, each with its stated value, uncertainty and publication year.", "kind": "number"},
+        {"id": "R2", "text": "An explicit statement that the values disagree (or agree), attributed to the sources that say so.", "kind": "conflict"},
+        {"id": "R3", "text": "Explanations for the disagreement are attributed to the source proposing them and not stated as settled.", "kind": "attribution"}
+      ]
+    },
+    {
+      "id": "Q10",
+      "split": "heldout",
+      "domain": "technology_forecasting",
+      "question": "Which programming language will be the most widely used in 2035?",
+      "categories": ["insufficient_evidence_abstention", "forecast_vs_fact"],
+      "used_for_tuning": false,
+      "scope": {
+        "subjects": ["programming language popularity in 2035"],
+        "dimensions": ["a prediction for 2035"],
+        "exclusions": ["current rankings presented as a prediction"],
+        "as_of": "2035 (a future date)"
+      },
+      "expected_outcome": "abstain_expected",
+      "abstention_expectation": "No source can establish a 2035 fact. A good answer declines to name a winner as fact, may report current survey or index data with its date, and may attribute any published forecast to its author as an opinion. A confident single-language answer without that framing is a failure.",
+      "answer_requirements": [
+        {"id": "R1", "text": "An explicit statement that the 2035 outcome cannot be established from available evidence.", "kind": "abstention"},
+        {"id": "R2", "text": "Any current ranking or survey result is dated and attributed and not presented as a 2035 fact.", "kind": "qualification"}
+      ]
+    },
+    {
+      "id": "Q11",
+      "split": "heldout",
+      "domain": "devops",
+      "question": "What do the Kubernetes docs recommend for setting CPU and memory requests and limits for containers, and what trade-offs do they describe?",
+      "categories": ["recommendation_attribution", "compound_claims"],
+      "used_for_tuning": false,
+      "scope": {
+        "subjects": ["Kubernetes resource requests and limits"],
+        "dimensions": ["recommendation", "described trade-offs", "CPU vs memory behaviour"],
+        "exclusions": ["third-party blog advice", "cloud-vendor autoscaler products"],
+        "as_of": "current Kubernetes documentation; the documented version must be named"
+      },
+      "expected_outcome": "answerable",
+      "answer_requirements": [
+        {"id": "R1", "text": "What the Kubernetes documentation says about requests versus limits, attributed to the documentation.", "kind": "attribution"},
+        {"id": "R2", "text": "CPU and memory behaviour when a limit is exceeded, stated separately for CPU and for memory.", "kind": "multi_subject", "subjects": ["CPU", "memory"]},
+        {"id": "R3", "text": "Each documented trade-off appears as its own claim rather than inside a bundle of assertions.", "kind": "compound"}
+      ]
+    },
+    {
+      "id": "Q12",
+      "split": "heldout",
+      "domain": "batteries",
+      "question": "Compare lithium iron phosphate (LFP) and nickel manganese cobalt (NMC) batteries for energy density, cycle life and cost, according to named sources.",
+      "categories": ["multi_subject_obligations", "dates_and_numbers", "factual_comparison"],
+      "used_for_tuning": false,
+      "scope": {
+        "subjects": ["LFP", "NMC"],
+        "dimensions": ["energy density", "cycle life", "cost"],
+        "exclusions": ["solid-state and sodium-ion chemistries", "vehicle model comparisons"],
+        "as_of": "each source's publication date; figures from different years are not merged"
+      },
+      "expected_outcome": "answerable",
+      "answer_requirements": [
+        {"id": "R1", "text": "Energy density for LFP and for NMC, each with source, units and year.", "kind": "multi_subject", "subjects": ["LFP", "NMC"]},
+        {"id": "R2", "text": "Cycle life for LFP and for NMC, each with source and test conditions when stated.", "kind": "multi_subject", "subjects": ["LFP", "NMC"]},
+        {"id": "R3", "text": "Cost for LFP and for NMC, each with source, currency and year; when a source gives only one chemistry the other is reported as missing.", "kind": "multi_subject", "subjects": ["LFP", "NMC"]}
+      ]
+    }
+  ]
+}

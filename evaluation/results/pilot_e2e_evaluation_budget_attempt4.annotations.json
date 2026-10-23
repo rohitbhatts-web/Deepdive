@@ -1,0 +1,29 @@
+{
+ "schema": "deepdive-eval-annotations/1",
+ "applies_to": "pilot_e2e_evaluation_budget_attempt4.json (that file, its .partial.json and its .db are unchanged)",
+ "Q02@1": {
+  "outcome": "failed",
+  "classification": "transport_timeout",
+  "stage": "verification: drafting (collection finished: 4/4 subquestions, 6 searches, 8 sources, 451 passages)",
+  "detail": "the drafter request reached its 60 s wall-clock deadline (measured 60.032 s); an earlier optional relevance call also timed out and was recorded as a warning",
+  "no_report": true,
+  "limitations": [
+   "the first-draft passage selection offered the drafter passages for 3 of the 4 subquestions (none for the HTTP/3 transport-layer subquestion); fixed afterwards, not re-run",
+   "no claim was drafted, so original-publication versus revision handling was not exercised"
+  ],
+  "proves_answer_quality": false,
+  "proves_citation_navigation": false
+ },
+ "Q05@2": {
+  "outcome": "completed_with_empty_report",
+  "report": "insufficient_evidence, 0 claims, all 7 requirements unresolved",
+  "collection_limitations": "0 pages were fetched or stored: for all 3 subquestions the URL selection chose no URL, and several search results were skipped because PDF documents are not supported. Eight searches were used (6 initial, 2 corrective) and found no usable page.",
+  "does_not_show": "that the search was exhaustive, or that a net profit or loss figure for fiscal year 2024 is unavailable",
+  "counts_as": "a completed run with an EMPTY report; not a successful abstention and not evidence of answer quality",
+  "proves_answer_quality": false,
+  "proves_citation_navigation": false
+ },
+ "ui_check": "stored runs viewed in the React UI on a copy of the database, no research started: failure and empty-report states, tabs and refresh worked; citation navigation was NOT exercised because neither run has a citation",
+ "operational_incident": "2026-10-22: after the UI check, an ad-hoc shell cleanup written by the assistant stopped processes by program name (taskkill /IM node.exe) and by listening port, and ended an unrelated node.exe. No repository code did this. Replaced by identity-verified ownership records (scripts/ui_acceptance/owned.mjs) and a regression test; recorded in docs/PHASE5_REVIEW.md",
+ "annotated": "2026-10-22, from the stored records; nothing was rerun"
+}

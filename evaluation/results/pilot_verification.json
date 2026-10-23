@@ -1,0 +1,630 @@
+{
+ "metadata": {
+  "sanitized_derivative": "Sanitized derivative: the only change from the original frozen result is that one quoted phrase of a withheld (rights-reserved) passage inside the verifier's explanation for CE31 (records[].semantic_reason) was replaced by '[withheld]'; every measured value is unchanged. metadata.dataset_sha256 is the hash of the original full dataset, not of the public export's claim_evidence.json. The original stays in the private working repository.",
+  "schema_version": "deepdive-eval-verification-result/2",
+  "kind": "verification",
+  "created_at": "2026-10-21T15:12:47+00:00",
+  "executed": true,
+  "fixture": false,
+  "split": "dev",
+  "label_basis": "authoritative-human",
+  "label_statement": "12 human label(s), rubric claim-labels-v2. Label provenance: AI-assisted human review; not independent or blinded.. These are not independent, blinded annotations and support no inter-annotator agreement claim.",
+  "label_provenance": [
+   "AI-assisted human review; not independent or blinded."
+  ],
+  "label_rubric_versions": [
+   "claim-labels-v2"
+  ],
+  "label_versions": {
+   "CE01": 1,
+   "CE08": 1,
+   "CE11": 1,
+   "CE12": 1,
+   "CE16": 1,
+   "CE21": 1,
+   "CE23": 1,
+   "CE30": 1,
+   "CE31": 1,
+   "CE36": 1,
+   "CE37": 1,
+   "CE40": 1
+  },
+  "dataset_label_rubric": "claim-labels-v2",
+  "dataset_sha256": {
+   "questions.json": "52a588b3507a70b76049cf49ce90cd3a63dffecfd6233193071e63ff1e161c5d",
+   "claim_evidence.json": "dc0a01e4b90ed3765fd17e6758565bc40a605da6d55f90b0d97b44a01673b124",
+   "split.lock.json": "c9b51cd99456e75481d1f7db245106c476c282c25683ff2171f1ca7213da77b1"
+  },
+  "models": {
+   "planner": "qwen/qwen3-235b-a22b-instruct-2507",
+   "researcher": "qwen/qwen3-235b-a22b-instruct-2507",
+   "drafter": "qwen/qwen3-235b-a22b-instruct-2507",
+   "verifier": "anthropic/claude-haiku-4.5",
+   "coverage": "anthropic/claude-haiku-4.5",
+   "synthesizer": "qwen/qwen3-235b-a22b-instruct-2507"
+  },
+  "rubric": "attribution-v2",
+  "prompt_sha256": {
+   "planner": "4c0e0087d7b537a58ebc2f2d6fae37d611ca5b3cf0415e0b71ad8f5c45f8fd1d",
+   "relevance": "5da85b45bf74bf1bdd509a6a8c7eaa8634af1de58583c4e85f2f0a38ce767e7e",
+   "drafter": "27abb15ffff7b22fedc2f5f515c3528c9be70de73349cbe709a316221f25f07d",
+   "verifier": "f65f104287e80210d45e1423e15179183c0b67a4664f9362d6d780c1a3344999",
+   "obligations": "3933d3ca8a619612d13551cb040089b60ae8440db078c83d98b0e06a90af5889",
+   "coverage": "6c03a831534c06a2ad1b1e63cd6aaf21749171340a5905711d20f9989f8cdfeb",
+   "reviser": "4fa74ba3388bc998c65a791ef2984fa9a2ca34e67ed5174460c0991d9f31f58b",
+   "synthesizer": "a7f2c3ef1aa3694678022e70741dc79bcb593215453744bc5927427ad00e8542"
+  },
+  "settings": {
+   "mesh_base_url": "https://api.meshapi.ai/v1",
+   "mesh_timeout": 60.0,
+   "min_call_seconds": 10.0,
+   "database_path": "data/deepdive.db",
+   "api_url": "http://127.0.0.1:8000",
+   "fetch_connect_timeout": 5.0,
+   "fetch_read_timeout": 10.0,
+   "fetch_total_timeout": 30.0,
+   "fetch_dns_timeout": 5.0,
+   "fetch_max_bytes": 2000000,
+   "fetch_max_redirects": 5,
+   "fetch_user_agent": "DeepDiveBot/0.1 (+https://github.com/rohitbhatts-web/Deepdive)",
+   "planner_model": "qwen/qwen3-235b-a22b-instruct-2507",
+   "researcher_model": "qwen/qwen3-235b-a22b-instruct-2507",
+   "drafter_model": "qwen/qwen3-235b-a22b-instruct-2507",
+   "verifier_model": "anthropic/claude-haiku-4.5",
+   "coverage_model": "",
+   "synthesizer_model": "",
+   "tavily_base_url": "https://api.tavily.com",
+   "max_model_requests": 24,
+   "max_search_queries": 8,
+   "max_page_fetches": 12,
+   "max_elapsed_seconds": 360.0,
+   "max_subquestions": 4,
+   "queries_per_subquestion": 2,
+   "results_per_query": 5,
+   "urls_per_subquestion": 3,
+   "association_passages_per_pair": 2,
+   "association_min_overlap": 2,
+   "association_max_pairs": 8,
+   "max_claims": 8,
+   "draft_input_chars": 9000,
+   "draft_passages_per_subquestion": 4,
+   "draft_context_passages": 1,
+   "verifier_context_chars": 1500,
+   "verifier_neighbor_passages": 1,
+   "min_quote_chars": 15,
+   "max_correction_rounds": 2,
+   "max_candidate_claims": 4,
+   "max_report_claims": 12,
+   "max_obligations_per_requirement": 4,
+   "max_repairs_per_claim": 1,
+   "max_tasks_per_round": 4,
+   "queries_per_task": 1,
+   "coverage_input_chars": 8000,
+   "reviser_input_chars": 5000,
+   "passage_target_chars": 1000,
+   "passage_max_chars": 1500
+  },
+  "budget": {
+   "max_model_requests": 24,
+   "max_total_output_tokens": 36000,
+   "max_elapsed_seconds": 360.0
+  },
+  "budget_class": "evaluation_budget_differs_from_production",
+  "budget_differences": {
+   "max_model_requests": {
+    "evaluation": 24,
+    "production_default": 20
+   },
+   "max_total_output_tokens": {
+    "evaluation": 36000,
+    "production_default": 15000
+   },
+   "max_elapsed_seconds": {
+    "evaluation": 360.0,
+    "production_default": 300.0
+   }
+  },
+  "run_ids": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12
+  ],
+  "notes": [
+   "12 human label(s), rubric claim-labels-v2. Label provenance: AI-assisted human review; not independent or blinded.. These are not independent, blinded annotations and support no inter-annotator agreement claim.",
+   "pilot: 12 human-reviewed development examples",
+   "BUDGET DIFFERS FROM THE PRODUCT DEFAULTS (max_model_requests: 24 vs 20, max_total_output_tokens: 36000 vs 15000, max_elapsed_seconds: 360.0 vs 300.0): these results are not default product performance and must not be reported as such."
+  ]
+ },
+ "records": [
+  {
+   "id": "CE01",
+   "split": "dev",
+   "gold": "supported",
+   "proposed": "supported",
+   "outcome": "supported",
+   "integrity_reason": "all evidence references resolve and every quote occurs in its passage (integrity only; this does not show support)",
+   "semantic_reason": "S1-P0 directly states: 'Starting with the August 10, 2009 release of SQLite 3.6.17, SQLite releases have 100% branch test coverage.' This matches all elements of the claim: the version (3.6.17), the date (10 August 2009), and the coverage assertion (100% branch test coverage).",
+   "run_id": 1,
+   "claim_id": 1,
+   "model_calls": 1,
+   "failed_calls": 0,
+   "prompt_tokens": 2837,
+   "completion_tokens": 182,
+   "latency_seconds": 2.116,
+   "calculated_cost_usd": null,
+   "provider_reported_cost_usd": null
+  },
+  {
+   "id": "CE08",
+   "split": "dev",
+   "gold": "partially_supported",
+   "proposed": "supported",
+   "outcome": "supported",
+   "integrity_reason": "all evidence references resolve and every quote occurs in its passage (integrity only; this does not show support)",
+   "semantic_reason": "S2-P0 is from Wikipedia's SQLite article and directly shows the infobox entry 'Initial release' with the date '2004-06-18', which exactly matches the claim.",
+   "run_id": 2,
+   "claim_id": 2,
+   "model_calls": 1,
+   "failed_calls": 0,
+   "prompt_tokens": 2928,
+   "completion_tokens": 142,
+   "latency_seconds": 3.234,
+   "calculated_cost_usd": null,
+   "provider_reported_cost_usd": null
+  },
+  {
+   "id": "CE11",
+   "split": "dev",
+   "gold": "partially_supported",
+   "proposed": "partially_supported",
+   "outcome": "partially_supported",
+   "integrity_reason": "all evidence references resolve and every quote occurs in its passage (integrity only; this does not show support)",
+   "semantic_reason": "S3-P0 confirms that write-ahead logging (WAL) enables concurrent reads and writes in SQLite (version 3.7+), supporting the first part of the claim. However, the evidence does not address the maximum database file size of 281 terabytes stated in the claim.",
+   "run_id": 3,
+   "claim_id": 3,
+   "model_calls": 1,
+   "failed_calls": 0,
+   "prompt_tokens": 2756,
+   "completion_tokens": 176,
+   "latency_seconds": 2.53,
+   "calculated_cost_usd": null,
+   "provider_reported_cost_usd": null
+  },
+  {
+   "id": "CE12",
+   "split": "dev",
+   "gold": "partially_supported",
+   "proposed": "partially_supported",
+   "outcome": "partially_supported",
+   "integrity_reason": "all evidence references resolve and every quote occurs in its passage (integrity only; this does not show support)",
+   "semantic_reason": "S4-P0 confirms that Read Committed is PostgreSQL's default isolation level. However, the passage does not address phantom reads at all. The passage describes what Read Committed prevents (uncommitted data and concurrent changes during query execution) but makes no claim about phantom reads specifically.",
+   "run_id": 4,
+   "claim_id": 4,
+   "model_calls": 1,
+   "failed_calls": 0,
+   "prompt_tokens": 2720,
+   "completion_tokens": 172,
+   "latency_seconds": 2.221,
+   "calculated_cost_usd": null,
+   "provider_reported_cost_usd": null
+  },
+  {
+   "id": "CE16",
+   "split": "dev",
+   "gold": "contradicted",
+   "proposed": "partially_supported",
+   "outcome": "contradicted",
+   "integrity_reason": "all evidence references resolve and every quote occurs in its passage (integrity only; this does not show support)",
+   "semantic_reason": "The evidence (S5-P0) states that test suites combined add up to 92 million lines of test code, but the claim asserts 920 million lines. The evidence explicitly contradicts the quantity claimed.",
+   "run_id": 5,
+   "claim_id": 5,
+   "model_calls": 1,
+   "failed_calls": 0,
+   "prompt_tokens": 2842,
+   "completion_tokens": 173,
+   "latency_seconds": 2.545,
+   "calculated_cost_usd": null,
+   "provider_reported_cost_usd": null
+  },
+  {
+   "id": "CE21",
+   "split": "dev",
+   "gold": "unsupported",
+   "proposed": "unsupported",
+   "outcome": "unsupported",
+   "integrity_reason": "all evidence references resolve and every quote occurs in its passage (integrity only; this does not show support)",
+   "semantic_reason": "The evidence discusses PostgreSQL's transaction isolation levels and concurrency behavior (specifically Read Committed isolation), while the claim asserts that PostgreSQL supports native declarative table partitioning. These are entirely different topics. The evidence contains no information about table partitioning.",
+   "run_id": 6,
+   "claim_id": 6,
+   "model_calls": 1,
+   "failed_calls": 0,
+   "prompt_tokens": 2715,
+   "completion_tokens": 182,
+   "latency_seconds": 2.3,
+   "calculated_cost_usd": null,
+   "provider_reported_cost_usd": null
+  },
+  {
+   "id": "CE23",
+   "split": "dev",
+   "gold": "unsupported",
+   "proposed": "unsupported",
+   "outcome": "partially_supported",
+   "integrity_reason": "all evidence references resolve and every quote occurs in its passage (integrity only; this does not show support)",
+   "semantic_reason": "S7-P0 confirms that in 2011, Hipp announced plans to add a NoSQL interface, but the claim states SQLite 'added' a NoSQL interface, implying implementation/completion. The evidence shows only an announcement of intent, not actual addition of the feature.",
+   "run_id": 7,
+   "claim_id": 7,
+   "model_calls": 1,
+   "failed_calls": 0,
+   "prompt_tokens": 2746,
+   "completion_tokens": 189,
+   "latency_seconds": 2.46,
+   "calculated_cost_usd": null,
+   "provider_reported_cost_usd": null
+  },
+  {
+   "id": "CE30",
+   "split": "dev",
+   "gold": "partially_supported",
+   "proposed": "partially_supported",
+   "outcome": "contradicted",
+   "integrity_reason": "all evidence references resolve and every quote occurs in its passage (integrity only; this does not show support)",
+   "semantic_reason": "S8-P0 presents Postgres via Docker as 'a useful middle ground,' not a universal mandate. It acknowledges SQLite locally with Postgres in production 'works well' as an alternative. The claim's 'always' contradicts this conditional framing.",
+   "run_id": 8,
+   "claim_id": 8,
+   "model_calls": 2,
+   "failed_calls": 1,
+   "prompt_tokens": 5802,
+   "completion_tokens": 464,
+   "latency_seconds": 5.372,
+   "calculated_cost_usd": null,
+   "provider_reported_cost_usd": null
+  },
+  {
+   "id": "CE31",
+   "split": "dev",
+   "gold": "contradicted",
+   "proposed": "contradicted",
+   "outcome": "contradicted",
+   "integrity_reason": "all evidence references resolve and every quote occurs in its passage (integrity only; this does not show support)",
+   "semantic_reason": "The evidence from S9-P0 explicitly states 'Winner: PostgreSQL' in the ACID compliance section, directly contradicting the claim that DataCamp names SQLite as the winner for ACID compliance. While the passage acknowledges both databases meet ACID criteria, it designates PostgreSQL as the winner for offering '[withheld]'",
+   "run_id": 9,
+   "claim_id": 9,
+   "model_calls": 1,
+   "failed_calls": 0,
+   "prompt_tokens": 2744,
+   "completion_tokens": 209,
+   "latency_seconds": 2.423,
+   "calculated_cost_usd": null,
+   "provider_reported_cost_usd": null
+  },
+  {
+   "id": "CE36",
+   "split": "dev",
+   "gold": "contradicted",
+   "proposed": "contradicted",
+   "outcome": "contradicted",
+   "integrity_reason": "all evidence references resolve and every quote occurs in its passage (integrity only; this does not show support)",
+   "semantic_reason": "S10-P0 explicitly states 'writes can only be performed sequentially,' directly contradicting the claim that SQLite lets several processes write simultaneously. The passage confirms concurrent reads but denies concurrent writes.",
+   "run_id": 10,
+   "claim_id": 10,
+   "model_calls": 2,
+   "failed_calls": 1,
+   "prompt_tokens": 5825,
+   "completion_tokens": 426,
+   "latency_seconds": 5.173,
+   "calculated_cost_usd": null,
+   "provider_reported_cost_usd": null
+  },
+  {
+   "id": "CE37",
+   "split": "dev",
+   "gold": "contradicted",
+   "proposed": "contradicted",
+   "outcome": "contradicted",
+   "integrity_reason": "all evidence references resolve and every quote occurs in its passage (integrity only; this does not show support)",
+   "semantic_reason": "The PostgreSQL manual explicitly states 'internally only three distinct isolation levels are implemented' (S11-P0), which directly contradicts the claim that PostgreSQL internally implements four distinct transaction isolation levels. The evidence clarifies that while four standard isolation levels can be requested, only three are actually implemented internally because Read Uncommitted behaves like Read Committed.",
+   "run_id": 11,
+   "claim_id": 11,
+   "model_calls": 1,
+   "failed_calls": 0,
+   "prompt_tokens": 2740,
+   "completion_tokens": 201,
+   "latency_seconds": 2.343,
+   "calculated_cost_usd": null,
+   "provider_reported_cost_usd": null
+  },
+  {
+   "id": "CE40",
+   "split": "dev",
+   "gold": "contradicted",
+   "proposed": "contradicted",
+   "outcome": "contradicted",
+   "integrity_reason": "all evidence references resolve and every quote occurs in its passage (integrity only; this does not show support)",
+   "semantic_reason": "The evidence states the SQLite library has 156,000 lines of source code (S12-P0), while the claim states 156 million lines. The numbers differ by a factor of 1,000.",
+   "run_id": 12,
+   "claim_id": 12,
+   "model_calls": 1,
+   "failed_calls": 0,
+   "prompt_tokens": 2805,
+   "completion_tokens": 174,
+   "latency_seconds": 2.468,
+   "calculated_cost_usd": null,
+   "provider_reported_cost_usd": null
+  }
+ ],
+ "metrics": {
+  "label_statement": "12 human label(s), rubric claim-labels-v2. Label provenance: AI-assisted human review; not independent or blinded.. These are not independent, blinded annotations and support no inter-annotator agreement claim.",
+  "label_basis": "authoritative human labels only",
+  "counts": {
+   "records": 12,
+   "labelled": 12,
+   "unlabelled_excluded": 0,
+   "judged": 12,
+   "supported": 2,
+   "partially_supported": 3,
+   "unsupported": 1,
+   "contradicted": 6,
+   "integrity_failed": 0,
+   "model_error": 0,
+   "not_judged": 0,
+   "gold_supported": 1,
+   "gold_partially_supported": 4,
+   "gold_unsupported": 2,
+   "gold_contradicted": 5
+  },
+  "confusion_matrix": {
+   "supported": {
+    "supported": 1,
+    "partially_supported": 0,
+    "unsupported": 0,
+    "contradicted": 0,
+    "integrity_failed": 0,
+    "model_error": 0,
+    "not_judged": 0
+   },
+   "partially_supported": {
+    "supported": 1,
+    "partially_supported": 2,
+    "unsupported": 0,
+    "contradicted": 1,
+    "integrity_failed": 0,
+    "model_error": 0,
+    "not_judged": 0
+   },
+   "unsupported": {
+    "supported": 0,
+    "partially_supported": 1,
+    "unsupported": 1,
+    "contradicted": 0,
+    "integrity_failed": 0,
+    "model_error": 0,
+    "not_judged": 0
+   },
+   "contradicted": {
+    "supported": 0,
+    "partially_supported": 0,
+    "unsupported": 0,
+    "contradicted": 5,
+    "integrity_failed": 0,
+    "model_error": 0,
+    "not_judged": 0
+   }
+  },
+  "supported_precision": {
+   "value": 0.5,
+   "numerator": 1,
+   "denominator": 2,
+   "status": "ok"
+  },
+  "supported_recall": {
+   "value": 1.0,
+   "numerator": 1,
+   "denominator": 1,
+   "status": "ok"
+  },
+  "supported_recall_judged_only": {
+   "value": 1.0,
+   "numerator": 1,
+   "denominator": 1,
+   "status": "ok"
+  },
+  "unsafe_leakage": {
+   "value": 0.09090909090909091,
+   "numerator": 1,
+   "denominator": 11,
+   "status": "ok"
+  },
+  "semantic_rejection_recall": {
+   "value": 0.8571428571428571,
+   "numerator": 6,
+   "denominator": 7,
+   "status": "ok"
+  },
+  "semantic_rejection_recall_judged_only": {
+   "value": 0.8571428571428571,
+   "numerator": 6,
+   "denominator": 7,
+   "status": "ok"
+  },
+  "blocked_from_report_recall": {
+   "value": 1.0,
+   "numerator": 7,
+   "denominator": 7,
+   "status": "ok"
+  },
+  "integrity_blocked": {
+   "value": 0.0,
+   "numerator": 0,
+   "denominator": 12,
+   "status": "ok"
+  },
+  "model_error_rate": {
+   "value": 0.0,
+   "numerator": 0,
+   "denominator": 12,
+   "status": "ok"
+  },
+  "four_verdict_accuracy": {
+   "value": 0.75,
+   "numerator": 9,
+   "denominator": 12,
+   "status": "ok"
+  },
+  "per_class": {
+   "supported": {
+    "precision": {
+     "value": 0.5,
+     "numerator": 1,
+     "denominator": 2,
+     "status": "ok"
+    },
+    "recall_judged_only": {
+     "value": 1.0,
+     "numerator": 1,
+     "denominator": 1,
+     "status": "ok"
+    }
+   },
+   "partially_supported": {
+    "precision": {
+     "value": 0.6666666666666666,
+     "numerator": 2,
+     "denominator": 3,
+     "status": "ok"
+    },
+    "recall_judged_only": {
+     "value": 0.5,
+     "numerator": 2,
+     "denominator": 4,
+     "status": "ok"
+    }
+   },
+   "unsupported": {
+    "precision": {
+     "value": 1.0,
+     "numerator": 1,
+     "denominator": 1,
+     "status": "ok"
+    },
+    "recall_judged_only": {
+     "value": 0.5,
+     "numerator": 1,
+     "denominator": 2,
+     "status": "ok"
+    }
+   },
+   "contradicted": {
+    "precision": {
+     "value": 0.8333333333333334,
+     "numerator": 5,
+     "denominator": 6,
+     "status": "ok"
+    },
+    "recall_judged_only": {
+     "value": 1.0,
+     "numerator": 5,
+     "denominator": 5,
+     "status": "ok"
+    }
+   }
+  },
+  "paired_accept_all_vs_verified": {
+   "same_claims": 12,
+   "precision_before_filter": {
+    "value": 0.08333333333333333,
+    "numerator": 1,
+    "denominator": 12,
+    "status": "ok"
+   },
+   "precision_after_filter": {
+    "value": 0.5,
+    "numerator": 1,
+    "denominator": 2,
+    "status": "ok"
+   },
+   "precision_change": 0.4166666666666667,
+   "not_fully_supported_in_output_before": 11,
+   "not_fully_supported_in_output_after": 1,
+   "supported_claims_retained": {
+    "value": 1.0,
+    "numerator": 1,
+    "denominator": 1,
+    "status": "ok"
+   },
+   "claims_kept": {
+    "value": 0.16666666666666666,
+    "numerator": 2,
+    "denominator": 12,
+    "status": "ok"
+   }
+  }
+ },
+ "agreement_with_provisional": {
+  "label_basis": "PROVISIONAL model-suggested labels - not ground truth, not accuracy",
+  "agreement": {
+   "value": 0.75,
+   "numerator": 9,
+   "denominator": 12,
+   "status": "ok"
+  },
+  "records": 12,
+  "not_judged": 0
+ },
+ "usage": {
+  "model_calls": {
+   "total": 14,
+   "reporting_rows": 12,
+   "of_rows": 12,
+   "status": "ok"
+  },
+  "failed_calls": {
+   "total": 2,
+   "reporting_rows": 12,
+   "of_rows": 12,
+   "status": "ok"
+  },
+  "prompt_tokens": {
+   "total": 39460,
+   "reporting_rows": 12,
+   "of_rows": 12,
+   "status": "ok"
+  },
+  "completion_tokens": {
+   "total": 2690,
+   "reporting_rows": 12,
+   "of_rows": 12,
+   "status": "ok"
+  },
+  "latency_seconds": {
+   "total": 35.185,
+   "reporting_rows": 12,
+   "of_rows": 12,
+   "status": "ok"
+  },
+  "calculated_cost_usd": {
+   "total": null,
+   "reporting_rows": 0,
+   "of_rows": 12,
+   "status": "Unavailable",
+   "meaning": "from returned tokens and a price table; an estimate"
+  },
+  "provider_reported_cost_usd": {
+   "total": null,
+   "reporting_rows": 0,
+   "of_rows": 12,
+   "status": "Unavailable",
+   "meaning": "charges reported by the provider's usage API"
+  }
+ },
+ "errors": []
+}

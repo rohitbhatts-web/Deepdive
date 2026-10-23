@@ -1,0 +1,557 @@
+{
+ "metadata": {
+  "sanitized_derivative": "Sanitized derivative: the only change from the original frozen result is that the local absolute path in metadata.settings.database_path was replaced by a placeholder; every measured value is unchanged. The original stays in the private working repository.",
+  "schema_version": "deepdive-eval-e2e-result/2",
+  "kind": "e2e",
+  "created_at": "2026-10-22T14:06:31+00:00",
+  "executed": true,
+  "fixture": false,
+  "split": "dev",
+  "label_basis": "none",
+  "label_statement": "No authoritative human labels were used: correctness metrics are N/A.",
+  "label_provenance": [],
+  "label_rubric_versions": [],
+  "label_versions": {},
+  "dataset_label_rubric": "claim-labels-v2",
+  "dataset_sha256": {
+   "questions.json": "78d0d5dad2a48a9743402f1f841c3516fba03d26ca45aa9725ec792ba0d296b0",
+   "claim_evidence.json": "dc0a01e4b90ed3765fd17e6758565bc40a605da6d55f90b0d97b44a01673b124",
+   "split.lock.json": "c9b51cd99456e75481d1f7db245106c476c282c25683ff2171f1ca7213da77b1"
+  },
+  "models": {
+   "planner": "qwen/qwen3-235b-a22b-instruct-2507",
+   "researcher": "qwen/qwen3-235b-a22b-instruct-2507",
+   "drafter": "qwen/qwen3-235b-a22b-instruct-2507",
+   "verifier": "anthropic/claude-haiku-4.5",
+   "coverage": "anthropic/claude-haiku-4.5",
+   "synthesizer": "qwen/qwen3-235b-a22b-instruct-2507"
+  },
+  "rubric": "attribution-v3",
+  "prompt_sha256": {
+   "planner": "422aae9edb9618ec8c62084ccf200e0b6d7eb82a27a722c2c227bb544a944b8d",
+   "relevance": "5da85b45bf74bf1bdd509a6a8c7eaa8634af1de58583c4e85f2f0a38ce767e7e",
+   "drafter": "1e2663b2e3df8dc2b9a8d4bea395161cd4151ea03f411108f3578a5cc0c1a72f",
+   "verifier": "cdfffdcc362bb5163861685e4755fc164be38ef5e6ef3bbd54de1befe2342204",
+   "obligations": "3933d3ca8a619612d13551cb040089b60ae8440db078c83d98b0e06a90af5889",
+   "coverage": "6c03a831534c06a2ad1b1e63cd6aaf21749171340a5905711d20f9989f8cdfeb",
+   "reviser": "4fa74ba3388bc998c65a791ef2984fa9a2ca34e67ed5174460c0991d9f31f58b",
+   "synthesizer": "a7f2c3ef1aa3694678022e70741dc79bcb593215453744bc5927427ad00e8542"
+  },
+  "settings": {
+   "mesh_base_url": "https://api.meshapi.ai/v1",
+   "mesh_timeout": 60.0,
+   "min_call_seconds": 10.0,
+   "database_path": "<local path redacted>",
+   "api_url": "http://127.0.0.1:8000",
+   "fetch_connect_timeout": 5.0,
+   "fetch_read_timeout": 10.0,
+   "fetch_total_timeout": 30.0,
+   "fetch_dns_timeout": 5.0,
+   "fetch_max_bytes": 2000000,
+   "fetch_max_redirects": 5,
+   "fetch_user_agent": "DeepDiveBot/0.1 (+https://github.com/rohitbhatts-web/Deepdive)",
+   "planner_model": "qwen/qwen3-235b-a22b-instruct-2507",
+   "researcher_model": "qwen/qwen3-235b-a22b-instruct-2507",
+   "drafter_model": "qwen/qwen3-235b-a22b-instruct-2507",
+   "verifier_model": "anthropic/claude-haiku-4.5",
+   "coverage_model": "",
+   "synthesizer_model": "",
+   "tavily_base_url": "https://api.tavily.com",
+   "max_model_requests": 40,
+   "max_search_queries": 8,
+   "corrective_search_reserve": 2,
+   "max_page_fetches": 12,
+   "max_elapsed_seconds": 600.0,
+   "max_subquestions": 4,
+   "queries_per_subquestion": 2,
+   "results_per_query": 5,
+   "urls_per_subquestion": 3,
+   "association_passages_per_pair": 2,
+   "association_min_overlap": 2,
+   "association_max_pairs": 8,
+   "max_claims": 8,
+   "draft_input_chars": 9000,
+   "draft_passages_per_subquestion": 4,
+   "draft_context_passages": 1,
+   "verifier_context_chars": 1500,
+   "verifier_neighbor_passages": 1,
+   "min_quote_chars": 15,
+   "max_correction_rounds": 2,
+   "max_candidate_claims": 4,
+   "max_report_claims": 12,
+   "max_obligations_per_requirement": 4,
+   "max_repairs_per_claim": 1,
+   "max_tasks_per_round": 4,
+   "queries_per_task": 1,
+   "coverage_input_chars": 8000,
+   "reviser_input_chars": 5000,
+   "passage_target_chars": 1000,
+   "passage_max_chars": 1500
+  },
+  "budget": {
+   "per_run": {
+    "model_requests": 40,
+    "search_queries": 8,
+    "page_fetches": 12,
+    "output_tokens": 30000,
+    "elapsed_seconds": 600.0,
+    "candidate_claims": 4,
+    "correction_rounds": 2
+   }
+  },
+  "budget_class": "evaluation_budget_differs_from_production",
+  "budget_differences": {
+   "max_model_requests": {
+    "evaluation": 40,
+    "production_default": 20
+   },
+   "max_total_output_tokens": {
+    "evaluation": 30000,
+    "production_default": 15000
+   },
+   "max_elapsed_seconds": {
+    "evaluation": 600.0,
+    "production_default": 300.0
+   }
+  },
+  "run_ids": [
+   1,
+   2
+  ],
+  "notes": [
+   "No authoritative human labels were used: correctness metrics are N/A.",
+   "no authoritative human labels: completeness and report-claim precision are N/A",
+   "BUDGET DIFFERS FROM THE PRODUCT DEFAULTS (max_model_requests: 40 vs 20, max_total_output_tokens: 30000 vs 15000, max_elapsed_seconds: 600.0 vs 300.0): these results are not default product performance and must not be reported as such."
+  ]
+ },
+ "questions": [
+  {
+   "question_id": "Q02",
+   "split": "dev",
+   "run_id": 1,
+   "status": "failed",
+   "stop_reason": "drafter failed: Mesh call failed for model 'qwen/qwen3-235b-a22b-instruct-2507': TimeoutError: wall-clock deadline of 60s reached; the request was cancelled and its connection closed (request timeout 60s)",
+   "report_outcome": null,
+   "report_id": null,
+   "report_claims": 0,
+   "initial": [],
+   "final": [],
+   "citations": [],
+   "system_coverage": [],
+   "corrective_rounds": null,
+   "budget_used_of_limit": {
+    "model_requests": [
+     11,
+     40
+    ],
+    "search_queries": [
+     6,
+     8
+    ],
+    "page_fetches": [
+     8,
+     12
+    ],
+    "candidate_claims": [
+     0,
+     4
+    ],
+    "output_tokens": [
+     4162,
+     30000
+    ],
+    "elapsed_seconds": [
+     317.3,
+     600.0
+    ]
+   },
+   "usage": {
+    "model_calls": 11,
+    "failed_calls": 2,
+    "prompt_tokens": null,
+    "completion_tokens": null,
+    "latency_seconds": 289.825,
+    "calculated_cost_usd": null,
+    "provider_reported_cost_usd": null,
+    "searches": 6
+   },
+   "errors": [
+    "no report was stored"
+   ],
+   "failure": {
+    "status": "collection_finished",
+    "stage": "verification: drafting",
+    "reason": "drafter failed: Mesh call failed for model 'qwen/qwen3-235b-a22b-instruct-2507': TimeoutError: wall-clock deadline of 60s reached; the request was cancelled and its connection closed (request timeout 60s)",
+    "classification": "transport_timeout",
+    "last_failed_call": {
+     "agent": "drafter",
+     "model": "qwen/qwen3-235b-a22b-instruct-2507",
+     "measured_wait_ms": 60032,
+     "deadline_seconds": 60,
+     "error": "TimeoutError: wall-clock deadline of 60s reached; the request was cancelled and its connection closed (request timeout 60s)"
+    },
+    "report_stored": false
+   }
+  },
+  {
+   "question_id": "Q05",
+   "split": "dev",
+   "run_id": 2,
+   "status": "completed",
+   "stop_reason": "no progress: the eligible claims and every requirement status are unchanged",
+   "report_outcome": "insufficient_evidence",
+   "report_id": 1,
+   "report_claims": 0,
+   "initial": [],
+   "final": [],
+   "citations": [],
+   "system_coverage": [
+    {
+     "requirement_key": "Q5.R1",
+     "text": "statement on release of financial results for fiscal year 2024",
+     "status": "unresolved",
+     "gap": "no eligible claim exists yet"
+    },
+    {
+     "requirement_key": "Q5.R2",
+     "text": "indication of net profit or net loss in the report",
+     "status": "unresolved",
+     "gap": "no eligible claim exists yet"
+    },
+    {
+     "requirement_key": "Q6.R1",
+     "text": "numerical value of net profit or loss",
+     "status": "unresolved",
+     "gap": "no eligible claim exists yet"
+    },
+    {
+     "requirement_key": "Q6.R2",
+     "text": "currency and time period (fiscal year 2024)",
+     "status": "unresolved",
+     "gap": "no eligible claim exists yet"
+    },
+    {
+     "requirement_key": "Q7.R1",
+     "text": "title and publication date of the document",
+     "status": "unresolved",
+     "gap": "no eligible claim exists yet"
+    },
+    {
+     "requirement_key": "Q7.R2",
+     "text": "publisher (must be Mistral AI or authorized entity)",
+     "status": "unresolved",
+     "gap": "no eligible claim exists yet"
+    },
+    {
+     "requirement_key": "Q7.R3",
+     "text": "direct link or citation to the source",
+     "status": "unresolved",
+     "gap": "no eligible claim exists yet"
+    }
+   ],
+   "corrective_rounds": 1,
+   "budget_used_of_limit": {
+    "model_requests": [
+     12,
+     40
+    ],
+    "search_queries": [
+     8,
+     8
+    ],
+    "page_fetches": [
+     0,
+     12
+    ],
+    "candidate_claims": [
+     0,
+     4
+    ],
+    "output_tokens": [
+     1045,
+     30000
+    ],
+    "elapsed_seconds": [
+     179.7,
+     600.0
+    ]
+   },
+   "usage": {
+    "model_calls": 12,
+    "failed_calls": 0,
+    "prompt_tokens": 10096,
+    "completion_tokens": 1045,
+    "latency_seconds": 156.524,
+    "calculated_cost_usd": null,
+    "provider_reported_cost_usd": null,
+    "searches": 8
+   },
+   "errors": [],
+   "failure": null
+  }
+ ],
+ "metrics": {
+  "label_statement": "No authoritative human labels were used: correctness metrics are N/A.",
+  "completeness": {
+   "label_basis": "authoritative human labels only",
+   "requirements": 7,
+   "labelled": 0,
+   "unlabelled_excluded": 7,
+   "fully_addressed": {
+    "value": null,
+    "numerator": 0,
+    "denominator": 0,
+    "status": "N/A"
+   },
+   "fully_or_partly_addressed": {
+    "value": null,
+    "numerator": 0,
+    "denominator": 0,
+    "status": "N/A"
+   },
+   "appropriate_abstention": {
+    "value": null,
+    "numerator": 0,
+    "denominator": 0,
+    "status": "N/A"
+   },
+   "system_assessed_addressed_vs_human": {
+    "note": "the coverage assessor's own status, shown for comparison only",
+    "agreement_on_addressed": {
+     "value": null,
+     "numerator": 0,
+     "denominator": 0,
+     "status": "N/A"
+    }
+   }
+  },
+  "completeness_by_requirement_set": {
+   "requirements-v1": {
+    "requirement_set": "requirements-v1",
+    "label_basis": "authoritative human labels only",
+    "requirements": 7,
+    "labelled": 0,
+    "unlabelled_excluded": 7,
+    "fully_addressed": {
+     "value": null,
+     "numerator": 0,
+     "denominator": 0,
+     "status": "N/A"
+    },
+    "fully_or_partly_addressed": {
+     "value": null,
+     "numerator": 0,
+     "denominator": 0,
+     "status": "N/A"
+    },
+    "appropriate_abstention": {
+     "value": null,
+     "numerator": 0,
+     "denominator": 0,
+     "status": "N/A"
+    },
+    "system_assessed_addressed_vs_human": {
+     "note": "the coverage assessor's own status, shown for comparison only",
+     "agreement_on_addressed": {
+      "value": null,
+      "numerator": 0,
+      "denominator": 0,
+      "status": "N/A"
+     }
+    }
+   },
+   "requirements-v2": {
+    "requirement_set": "requirements-v2",
+    "label_basis": "authoritative human labels only",
+    "requirements": 3,
+    "labelled": 0,
+    "unlabelled_excluded": 3,
+    "fully_addressed": {
+     "value": null,
+     "numerator": 0,
+     "denominator": 0,
+     "status": "N/A"
+    },
+    "fully_or_partly_addressed": {
+     "value": null,
+     "numerator": 0,
+     "denominator": 0,
+     "status": "N/A"
+    },
+    "appropriate_abstention": {
+     "value": null,
+     "numerator": 0,
+     "denominator": 0,
+     "status": "N/A"
+    },
+    "system_assessed_addressed_vs_human": {
+     "note": "the coverage assessor's own status, shown for comparison only",
+     "agreement_on_addressed": {
+      "value": null,
+      "numerator": 0,
+      "denominator": 0,
+      "status": "N/A"
+     }
+    }
+   }
+  },
+  "citation_integrity": {
+   "citations": 0,
+   "valid": {
+    "value": null,
+    "numerator": 0,
+    "denominator": 0,
+    "status": "N/A"
+   },
+   "failures": {
+    "passage_exists": 0,
+    "quote_found": 0,
+    "url_matches": 0,
+    "text_matches": 0
+   }
+  },
+  "initial_vs_final": {
+   "initial_claims": 0,
+   "initial_called_supported": 0,
+   "final_report_claims": 0,
+   "lineage_retention": {
+    "value": null,
+    "numerator": 0,
+    "denominator": 0,
+    "status": "N/A"
+   },
+   "final_claims_new_since_initial": 0,
+   "initial_precision_if_all_accepted": {
+    "value": null,
+    "numerator": 0,
+    "denominator": 0,
+    "status": "N/A"
+   },
+   "final_report_precision": {
+    "value": null,
+    "numerator": 0,
+    "denominator": 0,
+    "status": "N/A"
+   },
+   "final_report_not_fully_supported": 0,
+   "unlabelled_final_claims_excluded": 0
+  },
+  "abstention_and_retention": {
+   "run_completion": {
+    "questions": 2,
+    "completed_with_report": {
+     "value": 0.5,
+     "numerator": 1,
+     "denominator": 2,
+     "status": "ok"
+    },
+    "failed_runs": 1,
+    "failed_question_ids": [
+     "Q02"
+    ],
+    "failure_classes": {
+     "transport_timeout": 1
+    },
+    "note": "a failed run is counted here and nowhere as an abstention or as an answer with no claims"
+   },
+   "evidence_seeking_questions": 1,
+   "evidence_seeking_judged_by_human": 0,
+   "evidence_seeking_acceptable": {
+    "value": null,
+    "numerator": 0,
+    "denominator": 0,
+    "status": "N/A"
+   },
+   "evidence_seeking_found_with_primary_source": {
+    "value": null,
+    "numerator": 0,
+    "denominator": 0,
+    "status": "N/A"
+   },
+   "answerable_questions": 1,
+   "answerable_with_no_report_claims": {
+    "value": 0.0,
+    "numerator": 0,
+    "denominator": 1,
+    "status": "ok"
+   },
+   "answerable_with_insufficient_evidence_outcome": {
+    "value": 0.0,
+    "numerator": 0,
+    "denominator": 1,
+    "status": "ok"
+   },
+   "abstain_expected_questions": 0,
+   "abstain_expected_judged_by_human": 0,
+   "appropriate_abstention": {
+    "value": null,
+    "numerator": 0,
+    "denominator": 0,
+    "status": "N/A"
+   },
+   "abstain_expected_with_report_claims": {
+    "value": null,
+    "numerator": 0,
+    "denominator": 0,
+    "status": "N/A"
+   },
+   "note": "report claims on an abstain-expected question are not wrong by themselves; they must be reviewed (they may be correctly labelled adjacent facts)"
+  },
+  "usage": {
+   "model_calls": {
+    "total": 23,
+    "reporting_rows": 2,
+    "of_rows": 2,
+    "status": "ok"
+   },
+   "failed_calls": {
+    "total": 2,
+    "reporting_rows": 2,
+    "of_rows": 2,
+    "status": "ok"
+   },
+   "prompt_tokens": {
+    "total": 10096,
+    "reporting_rows": 1,
+    "of_rows": 2,
+    "status": "partial"
+   },
+   "completion_tokens": {
+    "total": 1045,
+    "reporting_rows": 1,
+    "of_rows": 2,
+    "status": "partial"
+   },
+   "latency_seconds": {
+    "total": 446.349,
+    "reporting_rows": 2,
+    "of_rows": 2,
+    "status": "ok"
+   },
+   "calculated_cost_usd": {
+    "total": null,
+    "reporting_rows": 0,
+    "of_rows": 2,
+    "status": "Unavailable",
+    "meaning": "from returned tokens and a price table; an estimate"
+   },
+   "provider_reported_cost_usd": {
+    "total": null,
+    "reporting_rows": 0,
+    "of_rows": 2,
+    "status": "Unavailable",
+    "meaning": "charges reported by the provider's usage API"
+   }
+  },
+  "reports_stored": {
+   "value": 0.5,
+   "numerator": 1,
+   "denominator": 2,
+   "status": "ok"
+  },
+  "questions": 2
+ },
+ "errors": [
+  "Q02: no report was stored"
+ ]
+}

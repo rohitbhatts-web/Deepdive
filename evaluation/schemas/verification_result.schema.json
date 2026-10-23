@@ -1,0 +1,378 @@
+{
+ "$defs": {
+  "RunMetadata": {
+   "description": "What a result file needs to be interpreted and reproduced. A result without this is not comparable to another.",
+   "properties": {
+    "schema_version": {
+     "title": "Schema Version",
+     "type": "string"
+    },
+    "kind": {
+     "title": "Kind",
+     "type": "string"
+    },
+    "created_at": {
+     "title": "Created At",
+     "type": "string"
+    },
+    "executed": {
+     "description": "False for a dry run or a fixture/harness test; True only when real calls were made",
+     "title": "Executed",
+     "type": "boolean"
+    },
+    "fixture": {
+     "description": "True when model replies came from a test fixture: the numbers are harness checks, not performance",
+     "title": "Fixture",
+     "type": "boolean"
+    },
+    "split": {
+     "title": "Split",
+     "type": "string"
+    },
+    "label_basis": {
+     "description": "authoritative-human | none (no human labels exist yet)",
+     "title": "Label Basis",
+     "type": "string"
+    },
+    "label_statement": {
+     "default": "",
+     "description": "plain-language statement of how the labels behind every correctness number were made; always shown with them",
+     "title": "Label Statement",
+     "type": "string"
+    },
+    "label_provenance": {
+     "default": [],
+     "description": "distinct provenance of the labels used, e.g. AI-assisted human review; not independent or blinded.",
+     "items": {
+      "type": "string"
+     },
+     "title": "Label Provenance",
+     "type": "array"
+    },
+    "label_rubric_versions": {
+     "default": [],
+     "description": "rubric versions the labels used were judged under",
+     "items": {
+      "type": "string"
+     },
+     "title": "Label Rubric Versions",
+     "type": "array"
+    },
+    "label_versions": {
+     "additionalProperties": {
+      "type": "integer"
+     },
+     "default": {},
+     "description": "version of each label used (1 = never corrected); earlier versions stay in human_labels.json",
+     "title": "Label Versions",
+     "type": "object"
+    },
+    "dataset_label_rubric": {
+     "default": "",
+     "description": "label rubric version of the claim-evidence dataset the examples came from",
+     "title": "Dataset Label Rubric",
+     "type": "string"
+    },
+    "dataset_sha256": {
+     "additionalProperties": {
+      "type": "string"
+     },
+     "title": "Dataset Sha256",
+     "type": "object"
+    },
+    "models": {
+     "additionalProperties": {
+      "type": "string"
+     },
+     "title": "Models",
+     "type": "object"
+    },
+    "rubric": {
+     "title": "Rubric",
+     "type": "string"
+    },
+    "prompt_sha256": {
+     "additionalProperties": {
+      "type": "string"
+     },
+     "title": "Prompt Sha256",
+     "type": "object"
+    },
+    "settings": {
+     "additionalProperties": true,
+     "title": "Settings",
+     "type": "object"
+    },
+    "budget": {
+     "additionalProperties": true,
+     "title": "Budget",
+     "type": "object"
+    },
+    "budget_class": {
+     "description": "production_defaults, or evaluation_budget_differs_from_production when any limit differs",
+     "title": "Budget Class",
+     "type": "string"
+    },
+    "budget_differences": {
+     "additionalProperties": true,
+     "description": "each limit that differs from the product default: {limit: {evaluation, production_default}}",
+     "title": "Budget Differences",
+     "type": "object"
+    },
+    "run_ids": {
+     "items": {
+      "type": "integer"
+     },
+     "title": "Run Ids",
+     "type": "array"
+    },
+    "notes": {
+     "default": [],
+     "items": {
+      "type": "string"
+     },
+     "title": "Notes",
+     "type": "array"
+    }
+   },
+   "required": [
+    "schema_version",
+    "kind",
+    "created_at",
+    "executed",
+    "fixture",
+    "split",
+    "label_basis",
+    "dataset_sha256",
+    "models",
+    "rubric",
+    "prompt_sha256",
+    "settings",
+    "budget",
+    "budget_class",
+    "budget_differences",
+    "run_ids"
+   ],
+   "title": "RunMetadata",
+   "type": "object"
+  },
+  "VerificationRecord": {
+   "properties": {
+    "id": {
+     "title": "Id",
+     "type": "string"
+    },
+    "split": {
+     "title": "Split",
+     "type": "string"
+    },
+    "gold": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "description": "authoritative human label, or None when no human has labelled this example",
+     "title": "Gold"
+    },
+    "proposed": {
+     "description": "PROVISIONAL model-suggested label; never used as correctness",
+     "title": "Proposed",
+     "type": "string"
+    },
+    "outcome": {
+     "title": "Outcome",
+     "type": "string"
+    },
+    "integrity_reason": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Integrity Reason"
+    },
+    "semantic_reason": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Semantic Reason"
+    },
+    "run_id": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Run Id"
+    },
+    "claim_id": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Claim Id"
+    },
+    "model_calls": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Model Calls"
+    },
+    "failed_calls": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Failed Calls"
+    },
+    "prompt_tokens": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Prompt Tokens"
+    },
+    "completion_tokens": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Completion Tokens"
+    },
+    "latency_seconds": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Latency Seconds"
+    },
+    "calculated_cost_usd": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Calculated Cost Usd"
+    },
+    "provider_reported_cost_usd": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Provider Reported Cost Usd"
+    }
+   },
+   "required": [
+    "id",
+    "split",
+    "gold",
+    "proposed",
+    "outcome"
+   ],
+   "title": "VerificationRecord",
+   "type": "object"
+  }
+ },
+ "properties": {
+  "metadata": {
+   "$ref": "#/$defs/RunMetadata"
+  },
+  "records": {
+   "items": {
+    "$ref": "#/$defs/VerificationRecord"
+   },
+   "title": "Records",
+   "type": "array"
+  },
+  "metrics": {
+   "additionalProperties": true,
+   "title": "Metrics",
+   "type": "object"
+  },
+  "agreement_with_provisional": {
+   "additionalProperties": true,
+   "title": "Agreement With Provisional",
+   "type": "object"
+  },
+  "usage": {
+   "additionalProperties": true,
+   "title": "Usage",
+   "type": "object"
+  },
+  "errors": {
+   "items": {
+    "type": "string"
+   },
+   "title": "Errors",
+   "type": "array"
+  }
+ },
+ "required": [
+  "metadata",
+  "records",
+  "metrics",
+  "agreement_with_provisional",
+  "usage",
+  "errors"
+ ],
+ "title": "VerificationResult",
+ "type": "object"
+}

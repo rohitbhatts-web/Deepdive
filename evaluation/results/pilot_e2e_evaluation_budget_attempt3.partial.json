@@ -1,0 +1,216 @@
+{
+ "status": "complete",
+ "completed_questions": [
+  {
+   "question_id": "Q02",
+   "split": "dev",
+   "run_id": 1,
+   "status": "stopped",
+   "stop_reason": "search budget exhausted (8 of 8 searches used); 3 unmet requirement(s) could not be researched",
+   "report_outcome": "claims_with_gaps",
+   "report_id": 1,
+   "report_claims": 3,
+   "report_markdown": "# Research report\n\nResearch question: When were HTTP/2 and HTTP/3 published as RFCs, and how do their transport layers differ?\n\nResult: verified claims are listed below; some evidence requirements are not fully addressed.\nStopped because: search budget exhausted (8 of 8 searches used); 3 unmet requirement(s) could not be researched\n\n## Section 1\nSubquestion: When was HTTP/2 published as an RFC?\n\n- HTTP/2 was published in June 2022 as RFC 9113. [1] (claim 4, version 2)\n\n## Section 2\nSubquestion: When was HTTP/3 published as an RFC?\n\n- HTTP/3 was published as a Proposed Standard in RFC 9114 on 6 June 2022. [2] (claim 2, version 1)\n\n## Section 3\nSubquestion: What transport layer protocol does HTTP/2 use?\n\n- HTTP/2 uses TCP as its transport layer protocol. [3] (claim 3, version 1)\n\n## Section 4\nSubquestion: What transport layer protocol does HTTP/3 use and how does it differ from HTTP/2's?\n\nNo verified claim is available for this subquestion.\n\n\n## Evidence requirements not fully addressed\n\n- Name of transport protocol used by HTTP/3 (unresolved; coverage note, model assessment: HTTP/3 transport protocol name is mentioned in claim 3 (QUIC) but the obligation requires the name of the transport protocol used by HTTP/3 as the subject. Claim 3 is about HTTP/2 and HTTP/3 comparison, not specifically about HTTP/3's transport protocol.)\n- Whether it is based on UDP or QUIC (partially_addressed; coverage note, model assessment: Claim 3 mentions HTTP/3 uses QUIC but does not confirm whether QUIC is based on UDP)\n- Key differences between HTTP/2 and HTTP/3 transport layers (partially_addressed; coverage note, model assessment: HTTP/2 / transport layer compared to HTTP/3: The difference is mentioned (HTTP/2 uses TCP) but key differences between the transport layers themselves are not detailed beyond naming them; HTTP/3 / transport layer compared to HTTP/2: The difference is mentioned (HTTP/3 uses QUIC) but key differences between the transport layers themselves are not detailed beyond naming them)\n\n## Citations\n\n[1] passage S1-P0, RFC 9113 - HTTP/2 - https://datatracker.ietf.org/doc/html/rfc9113\n[2] passage S4-P3, HTTP/3 - Wikipedia - https://en.wikipedia.org/wiki/HTTP/3\n[3] passage S4-P4, HTTP/3 - Wikipedia - https://en.wikipedia.org/wiki/HTTP/3",
+   "initial": [
+    {
+     "lineage": 1,
+     "claim_id": 1,
+     "text": "HTTP/2 was published in June 2022.",
+     "outcome": "integrity_failed",
+     "gold": null
+    },
+    {
+     "lineage": 2,
+     "claim_id": 2,
+     "text": "HTTP/3 was published as a Proposed Standard in RFC 9114 on 6 June 2022.",
+     "outcome": "supported",
+     "gold": null
+    },
+    {
+     "lineage": 3,
+     "claim_id": 3,
+     "text": "HTTP/2 uses TCP as its transport layer protocol.",
+     "outcome": "supported",
+     "gold": null
+    }
+   ],
+   "final": [
+    {
+     "lineage": 1,
+     "claim_id": 4,
+     "text": "HTTP/2 was published in June 2022 as RFC 9113.",
+     "gold": null,
+     "from_initial": true
+    },
+    {
+     "lineage": 2,
+     "claim_id": 2,
+     "text": "HTTP/3 was published as a Proposed Standard in RFC 9114 on 6 June 2022.",
+     "gold": null,
+     "from_initial": true
+    },
+    {
+     "lineage": 3,
+     "claim_id": 3,
+     "text": "HTTP/2 uses TCP as its transport layer protocol.",
+     "gold": null,
+     "from_initial": true
+    }
+   ],
+   "citations": [
+    {
+     "claim_id": 4,
+     "passage_id": "S1-P0",
+     "role": "claim_evidence",
+     "passage_exists": true,
+     "quote_found": true,
+     "url_matches": true,
+     "text_matches": true
+    },
+    {
+     "claim_id": 2,
+     "passage_id": "S4-P3",
+     "role": "claim_evidence",
+     "passage_exists": true,
+     "quote_found": true,
+     "url_matches": true,
+     "text_matches": true
+    },
+    {
+     "claim_id": 3,
+     "passage_id": "S4-P4",
+     "role": "claim_evidence",
+     "passage_exists": true,
+     "quote_found": true,
+     "url_matches": true,
+     "text_matches": true
+    }
+   ],
+   "system_coverage": [
+    {
+     "requirement_key": "Q1.R1",
+     "text": "Publication date of HTTP/2 RFC",
+     "status": "addressed",
+     "gap": ""
+    },
+    {
+     "requirement_key": "Q1.R2",
+     "text": "RFC number for HTTP/2",
+     "status": "addressed",
+     "gap": ""
+    },
+    {
+     "requirement_key": "Q2.R1",
+     "text": "Publication date of HTTP/3 RFC",
+     "status": "addressed",
+     "gap": ""
+    },
+    {
+     "requirement_key": "Q2.R2",
+     "text": "RFC number for HTTP/3",
+     "status": "addressed",
+     "gap": ""
+    },
+    {
+     "requirement_key": "Q3.R1",
+     "text": "Name of transport protocol used by HTTP/2",
+     "status": "addressed",
+     "gap": ""
+    },
+    {
+     "requirement_key": "Q3.R2",
+     "text": "Whether it is based on TCP",
+     "status": "addressed",
+     "gap": ""
+    },
+    {
+     "requirement_key": "Q4.R1",
+     "text": "Name of transport protocol used by HTTP/3",
+     "status": "unresolved",
+     "gap": "HTTP/3 transport protocol name is mentioned in claim 3 (QUIC) but the obligation requires the name of the transport protocol used by HTTP/3 as the subject. Claim 3 is about HTTP/2 and HTTP/3 comparison, not specifically about HTTP/3's transport protocol."
+    },
+    {
+     "requirement_key": "Q4.R2",
+     "text": "Whether it is based on UDP or QUIC",
+     "status": "partially_addressed",
+     "gap": "Claim 3 mentions HTTP/3 uses QUIC but does not confirm whether QUIC is based on UDP"
+    },
+    {
+     "requirement_key": "Q4.R3",
+     "text": "Key differences between HTTP/2 and HTTP/3 transport layers",
+     "status": "partially_addressed",
+     "gap": "HTTP/2 / transport layer compared to HTTP/3: The difference is mentioned (HTTP/2 uses TCP) but key differences between the transport layers themselves are not detailed beyond naming them; HTTP/3 / transport layer compared to HTTP/2: The difference is mentioned (HTTP/3 uses QUIC) but key differences between the transport layers themselves are not detailed beyond naming them"
+    }
+   ],
+   "corrective_rounds": 1,
+   "budget_used_of_limit": {
+    "model_requests": [
+     18,
+     40
+    ],
+    "search_queries": [
+     8,
+     8
+    ],
+    "page_fetches": [
+     9,
+     12
+    ],
+    "candidate_claims": [
+     0,
+     4
+    ],
+    "output_tokens": [
+     3871,
+     30000
+    ],
+    "elapsed_seconds": [
+     73.5,
+     600.0
+    ]
+   },
+   "usage": {
+    "model_calls": 18,
+    "failed_calls": 0,
+    "prompt_tokens": 29273,
+    "completion_tokens": 3871,
+    "latency_seconds": 54.837,
+    "calculated_cost_usd": null,
+    "provider_reported_cost_usd": null,
+    "searches": 8
+   },
+   "errors": []
+  },
+  {
+   "question_id": "Q05",
+   "split": "dev",
+   "run_id": 2,
+   "status": "failed",
+   "stop_reason": "relevance check failed: Mesh call failed for model 'qwen/qwen3-235b-a22b-instruct-2507': TimeoutError: wall-clock deadline of 60s reached; the request was cancelled and its connection closed (request timeout 60s)",
+   "report_outcome": null,
+   "report_id": null,
+   "report_claims": 0,
+   "report_markdown": null,
+   "initial": [],
+   "final": [],
+   "citations": [],
+   "system_coverage": [],
+   "corrective_rounds": null,
+   "budget_used_of_limit": null,
+   "usage": {
+    "model_calls": 10,
+    "failed_calls": 1,
+    "prompt_tokens": null,
+    "completion_tokens": null,
+    "latency_seconds": 972.778,
+    "calculated_cost_usd": null,
+    "provider_reported_cost_usd": null,
+    "searches": 8
+   },
+   "errors": [
+    "no report was stored"
+   ]
+  }
+ ],
+ "interrupted_question": null
+}

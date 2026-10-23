@@ -1,0 +1,8 @@
+run_key,question_id,claim_id,claim,cited_quotes,source_urls,human_label,reviewer,reviewed_at,note
+Q02@1,Q02,4,HTTP/2 was published in June 2022 as RFC 9113.,"RFC 9113
+
+HTTP/2
+
+June 2022",https://datatracker.ietf.org/doc/html/rfc9113,,,,
+Q02@1,Q02,2,HTTP/3 was published as a Proposed Standard in RFC 9114 on 6 June 2022.,"On 6 June 2022, IETF published HTTP/3 as a Proposed Standard in RFC 9114[1].",https://en.wikipedia.org/wiki/HTTP/3,,,,
+Q02@1,Q02,3,HTTP/2 uses TCP as its transport layer protocol.,Both HTTP/1.1 and HTTP/2 use TCP as their transport.,https://en.wikipedia.org/wiki/HTTP/3,,,,

@@ -1,0 +1,12 @@
+{
+ "schema": "deepdive-eval-annotations/1",
+ "applies_to": "pilot_e2e_evaluation_budget_attempt3.json (that file is unchanged)",
+ "Q05@2": {
+  "classification": "environment_interrupted",
+  "evidence": "the stored failed relevance call waited 895,750 ms against a 60 s deadline; the Windows System log shows the machine entered Modern Standby at 2026-10-21 21:21:39 IST and exited at 21:36:42 IST, and the run recorded the timeout at 21:36:43 IST (15:51:39-16:06:43 UTC)",
+  "stage": "collection: source-relevance check (cross-subquestion association)",
+  "counts_as": "failed run (not an abstention, not an answer with no claims)",
+  "provider_or_validation_or_budget_failure": false,
+  "annotated": "2026-10-22, from the stored records and the OS power log; not a rerun"
+ }
+}

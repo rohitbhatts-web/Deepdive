@@ -1,0 +1,75 @@
+{
+ "recorded": "2026-10-21",
+ "statement": "Held-out membership and hashes recorded before any tuning against the evaluation datasets. An item already used for tuning is not held out.",
+ "lock": {
+  "questions": {
+   "heldout_ids": [
+    "Q09",
+    "Q10",
+    "Q11",
+    "Q12"
+   ],
+   "dev_ids": [
+    "Q01",
+    "Q02",
+    "Q03",
+    "Q04",
+    "Q05",
+    "Q06",
+    "Q07",
+    "Q08"
+   ],
+   "heldout_sha256": "f2121c09c7b85f662b25fe9691173d1640fc4f93c974a677d38dd3e6290ffbbf",
+   "all_ids_sha256": "255f750fd3a9a72670c9cf99625dfeecca45acdd27ba4156a7b7e7c928bd7c14"
+  },
+  "claim_examples": {
+   "heldout_ids": [
+    "CE05",
+    "CE09",
+    "CE14",
+    "CE17",
+    "CE19",
+    "CE22",
+    "CE27",
+    "CE29",
+    "CE33",
+    "CE38"
+   ],
+   "dev_ids": [
+    "CE01",
+    "CE02",
+    "CE03",
+    "CE04",
+    "CE06",
+    "CE07",
+    "CE08",
+    "CE10",
+    "CE11",
+    "CE12",
+    "CE13",
+    "CE15",
+    "CE16",
+    "CE18",
+    "CE20",
+    "CE21",
+    "CE23",
+    "CE24",
+    "CE25",
+    "CE26",
+    "CE28",
+    "CE30",
+    "CE31",
+    "CE32",
+    "CE34",
+    "CE35",
+    "CE36",
+    "CE37",
+    "CE39",
+    "CE40"
+   ],
+   "heldout_sha256": "e7b55ac21e22f8410f0c3eb872dcb569680956bab9b8c2bb6f195ff385709091",
+   "all_ids_sha256": "5a2c480504f70f1645960549e2a5e22479f9b9999a7103d4147be210fbf2f52d"
+  },
+  "dataset_built": "2026-10-21"
+ }
+}

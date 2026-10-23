@@ -1,0 +1,103 @@
+@import "tailwindcss";
+
+/* Light working canvas, dark charcoal sidebar, teal accent. Semantic colours are always paired with a label and an icon. */
+:root {
+  --background: #f5f6f7;
+  --foreground: #1c2328;
+  --card: #ffffff;
+  --card-foreground: #1c2328;
+  --popover: #ffffff;
+  --popover-foreground: #1c2328;
+  --primary: #0f766e;
+  --primary-foreground: #ffffff;
+  --secondary: #eceff1;
+  --secondary-foreground: #1c2328;
+  --muted: #eceff1;
+  --muted-foreground: #556169;
+  --accent: #e3f1ef;
+  --accent-foreground: #0b4f4a;
+  --destructive: #b42318;
+  --border: #d9dee2;
+  --input: #c4cbd1;
+  --ring: #0f766e;
+  --sidebar: #1f2428;
+  --sidebar-foreground: #d7dde1;
+  --sidebar-muted: #aeb8bf;
+  --sidebar-border: #333a40;
+  --ok: #166534;
+  --ok-bg: #e7f5ec;
+  --gap: #8a5300;
+  --gap-bg: #fdf3dc;
+  --bad: #b42318;
+  --bad-bg: #fdeceb;
+  --neutral: #4b5760;
+  --neutral-bg: #eceff1;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-muted: var(--sidebar-muted);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-ok: var(--ok);
+  --color-ok-bg: var(--ok-bg);
+  --color-gap: var(--gap);
+  --color-gap-bg: var(--gap-bg);
+  --color-bad: var(--bad);
+  --color-bad-bg: var(--bad-bg);
+  --color-neutral: var(--neutral);
+  --color-neutral-bg: var(--neutral-bg);
+  --radius-md: 6px;
+  --radius-lg: 8px;
+}
+
+html {
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font-size: 15px;
+  line-height: 1.55;
+}
+@layer base {
+  *,
+  *::before,
+  *::after {
+    border-color: var(--border);
+  }
+}
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

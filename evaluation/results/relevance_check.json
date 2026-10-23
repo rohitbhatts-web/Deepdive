@@ -1,0 +1,250 @@
+{
+ "schema": "deepdive-relevance-check-result/1",
+ "provenance": "AI-assisted development expectations, written BEFORE the run. They are not independent human ground truth, not a labelled test set and not an accuracy measure: a disagreement can mean the expectation is wrong.",
+ "limits_per_domain": {
+  "max_model_requests": 8,
+  "max_total_output_tokens": 5000,
+  "max_elapsed_seconds": 150,
+  "max_search_queries": 0,
+  "max_page_fetches": 0,
+  "per_call_timeout_seconds": 60
+ },
+ "domains": [
+  {
+   "domain": "networking",
+   "run_id": 1,
+   "model_requests": 6,
+   "output_tokens": 1355,
+   "elapsed_seconds": 16.5,
+   "report_outcome": "claims_with_gaps",
+   "cases": [
+    {
+     "id": "A1-original-vs-revision",
+     "kind": "original publication versus a later revision",
+     "requirement": "Original publication date of the HTTP/2 specification",
+     "expected": {
+      "claim_role": "not_direct_answer",
+      "requirement": "not_addressed",
+      "section": "no_direct_answer"
+     },
+     "observed": {
+      "claim_semantic_verdict": "contradicted",
+      "claim_eligible": false,
+      "claim_role": "not_direct_answer",
+      "roles": [],
+      "requirement": "not_addressed",
+      "requirement_status": "unresolved",
+      "gap": "the assessor's explanation was rejected because it cited claims that do not support it (claim 2 does not contain '7540')",
+      "temporal_scope": "original",
+      "section": "no_direct_answer",
+      "section_answer_claims": [],
+      "section_context_claims": []
+     },
+     "agrees_with_expectation": {
+      "claim_role": true,
+      "requirement": true,
+      "section": true
+     },
+     "all_agree": false
+    },
+    {
+     "id": "A2-explicit-revision-question",
+     "kind": "an explicit question about the revised document's publication date",
+     "requirement": "Publication date of the current revision of the HTTP/2 specification",
+     "expected": {
+      "claim_role": "direct_answer",
+      "requirement": "addressed",
+      "section": "answered"
+     },
+     "observed": {
+      "claim_semantic_verdict": "supported",
+      "claim_eligible": true,
+      "claim_role": "direct_answer",
+      "roles": [
+       {
+        "role": "direct_answer",
+        "origin": "model",
+        "reason": "states RFC 9113 (current HTTP/2 revision) was published in June 2022"
+       }
+      ],
+      "requirement": "not_addressed",
+      "requirement_status": "unresolved",
+      "gap": "no cited claim is about the current revision of the HTTP/2 specification",
+      "temporal_scope": "revision",
+      "section": "answered",
+      "section_answer_claims": [
+       2
+      ],
+      "section_context_claims": []
+     },
+     "agrees_with_expectation": {
+      "claim_role": true,
+      "requirement": false,
+      "section": true
+     },
+     "all_agree": false
+    },
+    {
+     "id": "A3-off-topic-milestone",
+     "kind": "a supported but off-topic milestone",
+     "requirement": "RFC publication date for HTTP/3",
+     "expected": {
+      "claim_role": "not_direct_answer",
+      "requirement": "not_addressed",
+      "section": "no_direct_answer"
+     },
+     "observed": {
+      "claim_semantic_verdict": "supported",
+      "claim_eligible": true,
+      "claim_role": "not_direct_answer",
+      "roles": [
+       {
+        "role": "relevant_context",
+        "origin": "model",
+        "reason": "describes the naming proposal for HTTP/3 in October 2018, not its RFC publication date"
+       }
+      ],
+      "requirement": "not_addressed",
+      "requirement_status": "unresolved",
+      "gap": "The RFC publication date for HTTP/3 is not stated in any claim.",
+      "temporal_scope": "ambiguous",
+      "section": "no_direct_answer",
+      "section_answer_claims": [],
+      "section_context_claims": [
+       3
+      ]
+     },
+     "agrees_with_expectation": {
+      "claim_role": true,
+      "requirement": true,
+      "section": true
+     },
+     "all_agree": true
+    },
+    {
+     "id": "A4-direct-non-date",
+     "kind": "a supported direct answer to a non-date question",
+     "requirement": "Name of the transport protocol used by HTTP/3",
+     "expected": {
+      "claim_role": "direct_answer",
+      "requirement": "addressed",
+      "section": "answered"
+     },
+     "observed": {
+      "claim_semantic_verdict": "supported",
+      "claim_eligible": true,
+      "claim_role": "direct_answer",
+      "roles": [
+       {
+        "role": "direct_answer",
+        "origin": "model",
+        "reason": "explicitly states HTTP/3 uses QUIC as its transport layer protocol"
+       }
+      ],
+      "requirement": "addressed",
+      "requirement_status": "addressed",
+      "gap": "",
+      "temporal_scope": null,
+      "section": "answered",
+      "section_answer_claims": [
+       4
+      ],
+      "section_context_claims": []
+     },
+     "agrees_with_expectation": {
+      "claim_role": true,
+      "requirement": true,
+      "section": true
+     },
+     "all_agree": true
+    }
+   ]
+  },
+  {
+   "domain": "databases",
+   "run_id": 2,
+   "model_requests": 4,
+   "output_tokens": 561,
+   "elapsed_seconds": 7.8,
+   "report_outcome": "claims_with_gaps",
+   "cases": [
+    {
+     "id": "B1-off-topic-milestone",
+     "kind": "a supported but off-topic milestone",
+     "requirement": "Initial release date of SQLite",
+     "expected": {
+      "claim_role": "not_direct_answer",
+      "requirement": "not_addressed",
+      "section": "no_direct_answer"
+     },
+     "observed": {
+      "claim_semantic_verdict": "supported",
+      "claim_eligible": true,
+      "claim_role": "not_direct_answer",
+      "roles": [],
+      "requirement": "not_addressed",
+      "requirement_status": "unresolved",
+      "gap": "The claim mentions SQLite 3.6.17 released on August 10, 2009, but this is not the initial release of SQLite. The initial release date of SQLite is not provided in any claim.",
+      "temporal_scope": "original",
+      "section": "no_direct_answer",
+      "section_answer_claims": [],
+      "section_context_claims": []
+     },
+     "agrees_with_expectation": {
+      "claim_role": true,
+      "requirement": true,
+      "section": true
+     },
+     "all_agree": true
+    },
+    {
+     "id": "B2-direct-non-date",
+     "kind": "a supported direct answer to a non-date question",
+     "requirement": "Default transaction isolation level of PostgreSQL",
+     "expected": {
+      "claim_role": "direct_answer",
+      "requirement": "addressed",
+      "section": "answered"
+     },
+     "observed": {
+      "claim_semantic_verdict": "supported",
+      "claim_eligible": true,
+      "claim_role": "direct_answer",
+      "roles": [
+       {
+        "role": "direct_answer",
+        "origin": "model",
+        "reason": "Directly states that Read Committed is the default isolation level in PostgreSQL"
+       }
+      ],
+      "requirement": "addressed",
+      "requirement_status": "addressed",
+      "gap": "",
+      "temporal_scope": null,
+      "section": "answered",
+      "section_answer_claims": [
+       6
+      ],
+      "section_context_claims": []
+     },
+     "agrees_with_expectation": {
+      "claim_role": true,
+      "requirement": true,
+      "section": true
+     },
+     "all_agree": true
+    }
+   ]
+  }
+ ],
+ "totals": {
+  "model_requests": 10,
+  "output_tokens": 1916,
+  "elapsed_seconds": 24.3
+ },
+ "charges": {
+  "provider_reported_usd": 0.030233,
+  "calls_with_charge": 10,
+  "calls": 10
+ }
+}

@@ -1,0 +1,344 @@
+{
+ "$defs": {
+  "E2EQuestionRecord": {
+   "properties": {
+    "question_id": {
+     "title": "Question Id",
+     "type": "string"
+    },
+    "split": {
+     "title": "Split",
+     "type": "string"
+    },
+    "run_id": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Run Id"
+    },
+    "status": {
+     "title": "Status",
+     "type": "string"
+    },
+    "stop_reason": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Stop Reason"
+    },
+    "report_outcome": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Report Outcome"
+    },
+    "report_id": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Report Id"
+    },
+    "report_claims": {
+     "title": "Report Claims",
+     "type": "integer"
+    },
+    "initial": {
+     "items": {
+      "additionalProperties": true,
+      "type": "object"
+     },
+     "title": "Initial",
+     "type": "array"
+    },
+    "final": {
+     "items": {
+      "additionalProperties": true,
+      "type": "object"
+     },
+     "title": "Final",
+     "type": "array"
+    },
+    "citations": {
+     "items": {
+      "additionalProperties": true,
+      "type": "object"
+     },
+     "title": "Citations",
+     "type": "array"
+    },
+    "system_coverage": {
+     "description": "the pipeline's OWN requirement statuses; context only, never a correctness label",
+     "items": {
+      "additionalProperties": true,
+      "type": "object"
+     },
+     "title": "System Coverage",
+     "type": "array"
+    },
+    "corrective_rounds": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Corrective Rounds"
+    },
+    "budget_used_of_limit": {
+     "anyOf": [
+      {
+       "additionalProperties": true,
+       "type": "object"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Budget Used Of Limit"
+    },
+    "usage": {
+     "additionalProperties": true,
+     "title": "Usage",
+     "type": "object"
+    },
+    "errors": {
+     "default": [],
+     "items": {
+      "type": "string"
+     },
+     "title": "Errors",
+     "type": "array"
+    }
+   },
+   "required": [
+    "question_id",
+    "split",
+    "run_id",
+    "status",
+    "stop_reason",
+    "report_outcome",
+    "report_id",
+    "report_claims",
+    "initial",
+    "final",
+    "citations",
+    "system_coverage",
+    "corrective_rounds",
+    "budget_used_of_limit",
+    "usage"
+   ],
+   "title": "E2EQuestionRecord",
+   "type": "object"
+  },
+  "RunMetadata": {
+   "description": "What a result file needs to be interpreted and reproduced. A result without this is not comparable to another.",
+   "properties": {
+    "schema_version": {
+     "title": "Schema Version",
+     "type": "string"
+    },
+    "kind": {
+     "title": "Kind",
+     "type": "string"
+    },
+    "created_at": {
+     "title": "Created At",
+     "type": "string"
+    },
+    "executed": {
+     "description": "False for a dry run or a fixture/harness test; True only when real calls were made",
+     "title": "Executed",
+     "type": "boolean"
+    },
+    "fixture": {
+     "description": "True when model replies came from a test fixture: the numbers are harness checks, not performance",
+     "title": "Fixture",
+     "type": "boolean"
+    },
+    "split": {
+     "title": "Split",
+     "type": "string"
+    },
+    "label_basis": {
+     "description": "authoritative-human | none (no human labels exist yet)",
+     "title": "Label Basis",
+     "type": "string"
+    },
+    "label_statement": {
+     "default": "",
+     "description": "plain-language statement of how the labels behind every correctness number were made; always shown with them",
+     "title": "Label Statement",
+     "type": "string"
+    },
+    "label_provenance": {
+     "default": [],
+     "description": "distinct provenance of the labels used, e.g. AI-assisted human review; not independent or blinded.",
+     "items": {
+      "type": "string"
+     },
+     "title": "Label Provenance",
+     "type": "array"
+    },
+    "label_rubric_versions": {
+     "default": [],
+     "description": "rubric versions the labels used were judged under",
+     "items": {
+      "type": "string"
+     },
+     "title": "Label Rubric Versions",
+     "type": "array"
+    },
+    "label_versions": {
+     "additionalProperties": {
+      "type": "integer"
+     },
+     "default": {},
+     "description": "version of each label used (1 = never corrected); earlier versions stay in human_labels.json",
+     "title": "Label Versions",
+     "type": "object"
+    },
+    "dataset_label_rubric": {
+     "default": "",
+     "description": "label rubric version of the claim-evidence dataset the examples came from",
+     "title": "Dataset Label Rubric",
+     "type": "string"
+    },
+    "dataset_sha256": {
+     "additionalProperties": {
+      "type": "string"
+     },
+     "title": "Dataset Sha256",
+     "type": "object"
+    },
+    "models": {
+     "additionalProperties": {
+      "type": "string"
+     },
+     "title": "Models",
+     "type": "object"
+    },
+    "rubric": {
+     "title": "Rubric",
+     "type": "string"
+    },
+    "prompt_sha256": {
+     "additionalProperties": {
+      "type": "string"
+     },
+     "title": "Prompt Sha256",
+     "type": "object"
+    },
+    "settings": {
+     "additionalProperties": true,
+     "title": "Settings",
+     "type": "object"
+    },
+    "budget": {
+     "additionalProperties": true,
+     "title": "Budget",
+     "type": "object"
+    },
+    "budget_class": {
+     "description": "production_defaults, or evaluation_budget_differs_from_production when any limit differs",
+     "title": "Budget Class",
+     "type": "string"
+    },
+    "budget_differences": {
+     "additionalProperties": true,
+     "description": "each limit that differs from the product default: {limit: {evaluation, production_default}}",
+     "title": "Budget Differences",
+     "type": "object"
+    },
+    "run_ids": {
+     "items": {
+      "type": "integer"
+     },
+     "title": "Run Ids",
+     "type": "array"
+    },
+    "notes": {
+     "default": [],
+     "items": {
+      "type": "string"
+     },
+     "title": "Notes",
+     "type": "array"
+    }
+   },
+   "required": [
+    "schema_version",
+    "kind",
+    "created_at",
+    "executed",
+    "fixture",
+    "split",
+    "label_basis",
+    "dataset_sha256",
+    "models",
+    "rubric",
+    "prompt_sha256",
+    "settings",
+    "budget",
+    "budget_class",
+    "budget_differences",
+    "run_ids"
+   ],
+   "title": "RunMetadata",
+   "type": "object"
+  }
+ },
+ "properties": {
+  "metadata": {
+   "$ref": "#/$defs/RunMetadata"
+  },
+  "questions": {
+   "items": {
+    "$ref": "#/$defs/E2EQuestionRecord"
+   },
+   "title": "Questions",
+   "type": "array"
+  },
+  "metrics": {
+   "additionalProperties": true,
+   "title": "Metrics",
+   "type": "object"
+  },
+  "errors": {
+   "items": {
+    "type": "string"
+   },
+   "title": "Errors",
+   "type": "array"
+  }
+ },
+ "required": [
+  "metadata",
+  "questions",
+  "metrics",
+  "errors"
+ ],
+ "title": "E2EResult",
+ "type": "object"
+}
