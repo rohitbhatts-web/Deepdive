@@ -144,14 +144,19 @@ function SourcePanel({ runId, id, map, onSelect, onClose }: { runId: number; id:
   )
 }
 
-export function OverviewTab({ run, live, version }: { run: RunSummary; live: Live; version: number }) {
+/**
+ * The open claim lives in the page's own deep link (`#/runs/N/overview?claim=ID`, the mechanism the Report and Evidence tabs use), so it survives a refresh, can be shared,
+ * follows Back and Forward, and closing clears it. A highlighted passage belongs to the claim it was opened from; a source panel has no claim and is not part of the link.
+ */
+export function OverviewTab({ run, live, version, claimId }: { run: RunSummary; live: Live; version: number; claimId: number | null }) {
   const report = useResource<Report>(run.report_outcome === null ? null : `/runs/${run.id}/report`, version)
   const claims = useResource<Claim[]>(`/runs/${run.id}/claims`, version)
   const sources = useResource<SourceRow[]>(`/runs/${run.id}/sources`, version)
   const coverage = useResource<Coverage>(`/runs/${run.id}/coverage`, version)
   const questions = useResource<{ id: number; question: string }[]>(`/runs/${run.id}/subquestions`, version)
   const calls = useResource<ModelCall[]>(`/runs/${run.id}/model-calls`, version)
-  const [sel, setSel] = useState<MapSelection | null>(null)
+  const [passage, setPassage] = useState<{ claimId: number; id: string } | null>(null)
+  const [source, setSource] = useState<number | null>(null)
   const root = useRef<HTMLDivElement>(null)
   const wide = useWide(root, WIDE_PX)
   const trigger = useRef<string | null>(null)
@@ -176,32 +181,49 @@ export function OverviewTab({ run, live, version }: { run: RunSummary; live: Liv
   const stop = live.completion.stop_reason ?? run.stop_reason
   const stoppedEarly = !active && (run.complete_status === 'stopped' || run.status === 'stopped')
 
-  const pick = useCallback((s: MapSelection) => { trigger.current = (document.activeElement as HTMLElement | null)?.id || trigger.current; setSel(s) }, [])
+  const setLink = useCallback((id: number | null) => { window.location.hash = hrefFor(run.id, 'overview', id).slice(1) }, [run.id])
+  const pick = useCallback((s: MapSelection) => {
+    trigger.current = (document.activeElement as HTMLElement | null)?.id || trigger.current
+    if (s.kind === 'source') { setSource(s.id); setPassage(null); setLink(null); return }
+    const p = s.kind === 'passage' ? map.passages.find((x) => x.id === s.id) : undefined
+    const owner = s.kind === 'claim' ? s.id : (s.claimId ?? p?.claimIds[0] ?? p?.contextOnlyFor[0] ?? null)
+    if (owner === null) return
+    setSource(null)
+    setPassage(s.kind === 'passage' ? { claimId: owner, id: s.id } : null)
+    setLink(owner)
+  }, [map, setLink])
   const close = useCallback(() => {
-    setSel(null)
+    setPassage(null)
+    setSource(null)
+    setLink(null)
     const id = trigger.current
     if (id) setTimeout(() => document.getElementById(id)?.focus(), 0) // keyboard users return to the item that opened the inspector
-  }, [])
+  }, [setLink])
+  const selected = claimId !== null || source !== null
   useEffect(() => {
-    if (!sel) return
+    if (!selected) return
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && !e.defaultPrevented) close() }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [sel, close])
+  }, [selected, close])
 
   if (claims.error && claims.error.status !== 404) return <ErrorBox error={claims.error} what="claims" />
-  const passageSel = sel?.kind === 'passage' ? map.passages.find((p) => p.id === sel.id) : undefined
-  const claimOf = sel?.kind === 'claim' ? sel.id : sel?.kind === 'passage' ? (sel.claimId ?? passageSel?.claimIds[0] ?? passageSel?.contextOnlyFor[0] ?? null) : null
-  const highlight = sel?.kind === 'passage' ? sel.id : null
-  const mapSel: MapSelection | null = sel?.kind === 'passage' && sel.claimId !== undefined && !passageSel ? { kind: 'claim', id: sel.claimId } : sel
-  const inspector = claimOf ? <Inspector key={`${claimOf}-${highlight}`} runId={run.id} claimId={claimOf} highlight={highlight} onClose={close} />
-    : sel?.kind === 'source' ? <SourcePanel runId={run.id} id={sel.id} map={map} onSelect={pick} onClose={close} /> : null
+  const highlight = passage && passage.claimId === claimId ? passage.id : null // a highlight only applies to the claim it was opened from (Back or a new link drops it)
+  const mapSel: MapSelection | null = claimId !== null ? (highlight && map.passages.some((p) => p.id === highlight) ? { kind: 'passage', id: highlight, claimId } : { kind: 'claim', id: claimId })
+    : source !== null ? { kind: 'source', id: source } : null
+  const inspector = claimId !== null ? <Inspector key={`${claimId}-${highlight}`} runId={run.id} claimId={claimId} highlight={highlight} onClose={close} />
+    : source !== null ? <SourcePanel runId={run.id} id={source} map={map} onSelect={pick} onClose={close} /> : null
 
   const shownAnswers = answers.slice(0, PREVIEW)
   const moreAnswers = answers.length - shownAnswers.length
   const shownGaps = open.slice(0, PREVIEW)
   const technical = stoppedEarly || Boolean(stop)
   const tone = outcome.tone
+
+  // shown wherever the answer is shown, including above the inspector that replaces the answer column on wide screens
+  const historicalNote = stale > 0 ? (
+    <p className="flex items-start gap-2 rounded-lg border border-gap/30 bg-gap-bg px-3 py-2 text-sm font-medium text-gap"><Clock aria-hidden className="mt-0.5 size-4 shrink-0" />Historical answer: {stale} of {answers.length} claim{answers.length === 1 ? "" : "s"} need{stale === 1 ? "s" : ""} re-judging.</p>
+  ) : null
 
   const answerCard = (
     <Panel className="rounded-2xl shadow-sm">
@@ -210,7 +232,7 @@ export function OverviewTab({ run, live, version }: { run: RunSummary; live: Liv
           <IconTile icon={FileText} />
           <SectionHeading id="answer-h" description="Claims the report lists as answers, exactly as stored.">Research answer</SectionHeading>
         </div>
-        {stale > 0 && <p className="flex items-start gap-2 rounded-lg border border-gap/30 bg-gap-bg px-3 py-2 text-sm font-medium text-gap"><Clock aria-hidden className="mt-0.5 size-4 shrink-0" />Historical answer: {stale} of {answers.length} claim{answers.length === 1 ? "" : "s"} need{stale === 1 ? "s" : ""} re-judging.</p>}
+        {historicalNote}
         {report.loading && !rep && <Loading label="Loading answer" blocks={2} />}
         {!rep && !report.loading && <Empty title={active ? 'The answer is not written yet' : 'No answer was produced'}>{active ? 'It appears here when the run finishes.' : 'This run stored no report, so there is nothing to preview.'}</Empty>}
         {rep && answers.length === 0 && <p className="text-sm text-muted-foreground">No verified claim directly answers a requirement of this question.</p>}
@@ -267,7 +289,7 @@ export function OverviewTab({ run, live, version }: { run: RunSummary; live: Liv
   )
 
   return (
-    <div ref={root} className={cn('@container flex flex-col gap-5', sel && !wide && 'pb-[55vh]')}>
+    <div ref={root} className={cn('@container flex flex-col gap-5', selected && !wide && 'pb-[55vh]')}>
       <Panel className="rounded-2xl shadow-sm">
         <div role="status" className="p-5">
           <div>
@@ -297,6 +319,7 @@ export function OverviewTab({ run, live, version }: { run: RunSummary; live: Liv
         <div className="order-[10] min-w-0 space-y-5 @5xl:order-none">
           {wide && inspector ? (
             <div aria-live="polite" className="space-y-3">
+              {historicalNote}
               <button type="button" onClick={close} className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-3 py-1.5 text-sm font-medium shadow-sm hover:border-primary/50"><ArrowLeft aria-hidden className="size-4" />Back to answer</button>
               {inspector}
             </div>

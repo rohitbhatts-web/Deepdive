@@ -137,7 +137,7 @@ export function RunPage({ runId, tab, claimId, interval = 2000, onTerminal }: { 
       </nav>
       <section aria-labelledby="section-title" id="section-panel">
         <h2 id="section-title" className="sr-only">{TAB_LABEL[tab]}</h2>
-        {tab === 'overview' && <OverviewTab run={run} live={data} version={version} />}
+        {tab === 'overview' && <OverviewTab run={run} live={data} version={version} claimId={claimId} />}
         {tab === 'report' && <ReportTab run={run} claimId={claimId} version={version} active={active} events={events} />}
         {tab === 'evidence' && <EvidenceTab run={run} claimId={claimId} version={version} />}
         {tab === 'coverage' && <CoverageTab run={run} version={version} />}

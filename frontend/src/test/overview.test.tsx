@@ -1,16 +1,22 @@
 // The Overview derives everything from stored rows. FIXTURES only; nothing here talks to a backend.
-import { cleanup, render, screen, within } from '@testing-library/react'
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it } from 'vitest'
-import type { Completion, ResearchStatus, RunEvent } from '@/api/types'
+import type { Completion, ResearchStatus, RunEvent, RunSummary } from '@/api/types'
 import { OverviewTab } from '@/components/OverviewTab'
 import { LifecycleDetail, LifecycleStrip } from '@/components/Lifecycle'
 import type { Live } from '@/components/RunPage'
 import { coverageBySubquestion, evidenceMap, lifecycle, outcomeSummary, requestsByStage } from '@/lib/overview'
-import { parseHash } from '@/lib/route'
+import { parseHash, useRoute } from '@/lib/route'
 import { CLAIM_A, CLAIM_B, REPORT, RUN, claim, stubFetch } from './fixtures'
 
 afterEach(() => { cleanup(); window.location.hash = '' })
+
+/** Mounts the tab the way RunPage does: the open claim comes from the page's own hash route, so these tests exercise the real deep-link mechanism. */
+function Harness(props: { run: RunSummary; live: Live; version: number }) {
+  const r = useRoute()
+  return <OverviewTab {...props} claimId={r.page === 'run' ? r.claimId : null} />
+}
 
 const ev = (id: number, event_type: string, at = '2026-01-01T00:0' + id + ':00Z'): RunEvent => ({ id, event_type, stage: 'x', created_at: at, payload: {} })
 const completion: Completion = { run_id: 7, complete_status: 'completed', stop_reason: 'corrective rounds exhausted (1)', corrective_rounds: 1, max_corrective_rounds: 2, coverage_round: 1, coverage: null, report_id: 3, report_outcome: 'claims_with_gaps', budget_used_of_limit: { model_requests: [9, 20] } }
@@ -121,7 +127,7 @@ describe('Overview tab', () => {
 
   it('answers first: outcome, exact answer text, what is unanswered, and honest counts', async () => {
     stubFetch(routes())
-    render(<OverviewTab run={RUN} live={live} version={0} />)
+    render(<Harness run={RUN} live={live} version={0} />)
     expect(await screen.findByText('2 verified claims answer part of the question.')).toBeInTheDocument()
     const answer = screen.getByRole('heading', { name: 'Research answer' }).closest('[class*="rounded-2xl"]') as HTMLElement
     expect(within(answer).getByText(/The cache holds\s+512 entries/).textContent).toBe(CLAIM_A.text) // exactly as stored, markup shown as text
@@ -137,7 +143,7 @@ describe('Overview tab', () => {
 
   it('draws bars from requirement statuses labelled Addressed / Partial / Open, and never calls them accuracy', async () => {
     stubFetch(routes())
-    render(<OverviewTab run={RUN} live={live} version={0} />)
+    render(<Harness run={RUN} live={live} version={0} />)
     expect(await screen.findByRole('img', { name: /FIXTURE first question: 1 addressed, 0 partial, 1 open, of 2 requirements/ })).toBeInTheDocument()
     expect(screen.getByRole('img', { name: /FIXTURE second question: 0 addressed, 1 partial, 0 open, of 1 requirements/ })).toBeInTheDocument()
     const legend = within(screen.getByRole('heading', { name: 'Coverage by question' }).closest('[class*="rounded-2xl"]') as HTMLElement).getByLabelText('Legend')
@@ -149,7 +155,7 @@ describe('Overview tab', () => {
 
   it('shows recorded request counts by stage without limits, timings or costs', async () => {
     stubFetch(routes())
-    render(<OverviewTab run={RUN} live={live} version={0} />)
+    render(<Harness run={RUN} live={live} version={0} />)
     expect(await screen.findByText(/3 recorded requests in total/)).toBeInTheDocument()
     const section = screen.getByRole('heading', { name: 'Model requests by stage' }).closest('[class*="rounded-2xl"]') as HTMLElement
     expect(within(section).getByText('Verify claims').parentElement).toHaveTextContent('2 · 1 failed')
@@ -159,7 +165,7 @@ describe('Overview tab', () => {
   it('connects the stored sources, passages and claims, and opens the existing inspector from any node; the list is a complete fallback', async () => {
     stubFetch(routes())
     const user = userEvent.setup()
-    render(<OverviewTab run={RUN} live={live} version={0} />)
+    render(<Harness run={RUN} live={live} version={0} />)
     expect(await screen.findByText('2 of 3 shown')).toBeInTheDocument() // the subset is labelled in each column: sources, cited passages, claims
     expect(screen.getByText('2 of 2 cited shown')).toBeInTheDocument()
     expect(screen.getByText('2 of 2 shown')).toBeInTheDocument()
@@ -177,14 +183,100 @@ describe('Overview tab', () => {
     await user.click(within(list).getByRole('button', { name: 'S2-P3' }))
     expect(await screen.findByRole('heading', { name: 'Claim 2 inspector' })).toBeInTheDocument()
     await user.keyboard('{Escape}') // the inspector closes from the keyboard
-    expect(screen.queryByRole('heading', { name: /inspector/ })).toBeNull()
+    await waitFor(() => expect(screen.queryByRole('heading', { name: /inspector/ })).toBeNull())
+  })
+
+  describe('the open claim lives in the page link', () => {
+    const hash = () => window.location.hash
+    const inspectorFor = (n: number) => screen.findByRole('heading', { name: `Claim ${n} inspector` })
+
+    it('opens from an answer button, a map node and the list fallback by writing the claim into the link', async () => {
+      window.location.hash = '#/runs/7/overview'
+      stubFetch(routes())
+      const user = userEvent.setup()
+      render(<Harness run={RUN} live={live} version={0} />)
+      await user.click(await screen.findByRole('button', { name: 'Inspect evidence for claim 1' }))
+      expect(await inspectorFor(1)).toBeInTheDocument()
+      expect(hash()).toBe('#/runs/7/overview?claim=1')
+      await user.click(within(screen.getByRole('list', { name: 'Claims' })).getByRole('button', { name: /Claim 2/ }))
+      expect(await inspectorFor(2)).toBeInTheDocument()
+      expect(hash()).toBe('#/runs/7/overview?claim=2')
+      const list = screen.getByRole('list', { name: 'Evidence connections' })
+      await user.click(within(list).getByRole('button', { name: /^Claim 1:/ }))
+      expect(await inspectorFor(1)).toBeInTheDocument()
+      expect(hash()).toBe('#/runs/7/overview?claim=1')
+      await user.click(within(list).getByRole('button', { name: 'S2-P3' })) // a passage opens its claim, with the passage highlighted
+      expect(await inspectorFor(2)).toBeInTheDocument()
+      expect(hash()).toBe('#/runs/7/overview?claim=2')
+      expect(within(screen.getByRole('list', { name: 'Passages' })).getByRole('button', { name: /S2-P3/ })).toHaveAttribute('aria-pressed', 'true')
+    })
+
+    it('loads an inspector straight from a direct link, and keeps it after a refresh', async () => {
+      window.location.hash = '#/runs/7/overview?claim=2'
+      stubFetch(routes())
+      render(<Harness run={RUN} live={live} version={0} />)
+      expect(await inspectorFor(2)).toBeInTheDocument()
+      expect(within(screen.getByRole('list', { name: 'Claims' })).getByRole('button', { name: /Claim 2/ })).toHaveAttribute('aria-pressed', 'true')
+      cleanup() // a refresh: the page is rebuilt from the same link alone
+      stubFetch(routes())
+      render(<Harness run={RUN} live={live} version={0} />)
+      expect(await inspectorFor(2)).toBeInTheDocument()
+      expect(hash()).toBe('#/runs/7/overview?claim=2')
+    })
+
+    it('closes from the button and from Escape, and closing clears the claim from the link', async () => {
+      window.location.hash = '#/runs/7/overview?claim=1'
+      stubFetch(routes())
+      const user = userEvent.setup()
+      render(<Harness run={RUN} live={live} version={0} />)
+      await user.click(await screen.findByRole('button', { name: /Close inspector/ }))
+      await waitFor(() => expect(screen.queryByRole('heading', { name: /inspector/ })).toBeNull())
+      expect(hash()).toBe('#/runs/7/overview')
+      await user.click(screen.getByRole('button', { name: 'Inspect evidence for claim 2' }))
+      expect(await inspectorFor(2)).toBeInTheDocument()
+      await user.keyboard('{Escape}')
+      await waitFor(() => expect(screen.queryByRole('heading', { name: /inspector/ })).toBeNull())
+      expect(hash()).toBe('#/runs/7/overview')
+      cleanup() // and a refresh after closing stays closed
+      stubFetch(routes())
+      render(<Harness run={RUN} live={live} version={0} />)
+      await screen.findByRole('heading', { name: 'Research answer' })
+      expect(screen.queryByRole('heading', { name: /inspector/ })).toBeNull()
+    })
+
+    it('shows no evidence for a claim id that is not in this run: the request is scoped to the run and its refusal is shown', async () => {
+      window.location.hash = '#/runs/7/overview?claim=999' // an invalid id, or one that belongs to another run, is refused by the run-scoped endpoint (404)
+      const calls = stubFetch({ ...routes(), '/runs/7/claims/999': { __status: 404, detail: 'claim 999 not found in run 7' } })
+      render(<Harness run={RUN} live={live} version={0} />)
+      expect(await screen.findByRole('heading', { name: 'Claim 999 inspector' })).toBeInTheDocument()
+      expect(await screen.findByText('claim 999 not found in run 7')).toBeInTheDocument()
+      const inspector = screen.getByRole('complementary', { name: 'Claim and evidence inspector' })
+      expect(within(inspector).queryByText(CLAIM_A.text)).toBeNull() // no other claim's text or evidence is shown in its place
+      expect(within(inspector).queryByText('Cited evidence')).toBeNull()
+      expect(calls.filter((c) => /\/claims\/\d+$/.test(c.path)).map((c) => c.path)).toEqual(['/runs/7/claims/999']) // only this run's path was asked for
+      expect(within(screen.getByRole('list', { name: 'Claims' })).queryByRole('button', { pressed: true })).toBeNull() // and no map node is marked as selected
+    })
+
+    it('follows Back and Forward, and a source panel is not part of the link', async () => {
+      window.location.hash = '#/runs/7/overview'
+      stubFetch(routes())
+      const user = userEvent.setup()
+      render(<Harness run={RUN} live={live} version={0} />)
+      await user.click(await screen.findByRole('button', { name: 'Inspect evidence for claim 1' }))
+      expect(await inspectorFor(1)).toBeInTheDocument()
+      window.location.hash = '#/runs/7/overview?claim=2' // as Back or Forward would
+      expect(await inspectorFor(2)).toBeInTheDocument()
+      await user.click(within(screen.getByRole('list', { name: 'Sources' })).getByRole('button', { name: /Guide/ }))
+      expect(await screen.findByRole('heading', { name: 'Guide' })).toBeInTheDocument()
+      expect(hash()).toBe('#/runs/7/overview') // a source has no claim, so the claim leaves the link
+    })
   })
 
   it('previews at most three answers and three gaps, with working links to the rest', async () => {
     const many = Array.from({ length: 5 }, (_, i) => ({ claim_id: i + 1, claim_version: 1, text: `FIXTURE answer ${i + 1}`, semantic_result_id: 2, citations: REPORT.sections[0].claims[0].citations }))
     const gaps = Array.from({ length: 5 }, (_, i) => ({ requirement_key: `Q1.R${i + 1}`, requirement_text: `FIXTURE gap ${i + 1}`, status: 'unresolved', gap: 'none stored' }))
     stubFetch({ ...routes(), '/runs/7/report': { ...REPORT, sections: [{ ...REPORT.sections[0], claims: many }], unresolved_requirements: gaps } })
-    render(<OverviewTab run={RUN} live={live} version={0} />)
+    render(<Harness run={RUN} live={live} version={0} />)
     const answer = (await screen.findByRole('heading', { name: 'Research answer' })).closest('[class*="rounded-2xl"]') as HTMLElement
     expect(within(answer).getAllByRole('button', { name: /Inspect evidence for claim/ })).toHaveLength(3)
     expect(within(answer).getByRole('link', { name: 'View full report (2 more claims)' })).toBeInTheDocument()
@@ -196,7 +288,7 @@ describe('Overview tab', () => {
   it('labels a historical answer and its coverage when listed claims need re-judging', async () => {
     const old = (c: typeof A) => ({ ...c, eligible_for_report: false })
     stubFetch({ ...routes(), '/runs/7/claims': [old(A), old(B)] })
-    render(<OverviewTab run={RUN} live={live} version={0} />)
+    render(<Harness run={RUN} live={live} version={0} />)
     expect(await screen.findByText('Historical answer: 2 of 2 claims need re-judging.')).toBeInTheDocument()
     const cov = screen.getByRole('heading', { name: /Coverage by question/ })
     expect(cov).toHaveTextContent('Historical')
@@ -204,7 +296,7 @@ describe('Overview tab', () => {
 
   it('says the report is loading rather than claiming there is none while it is being read', async () => {
     stubFetch(routes())
-    render(<OverviewTab run={RUN} live={live} version={0} />)
+    render(<Harness run={RUN} live={live} version={0} />)
     expect(screen.getByText('Loading the stored report…')).toBeInTheDocument()
     expect(screen.queryByText('This run has no report.')).toBeNull()
     expect(await screen.findByText('2 verified claims answer part of the question.')).toBeInTheDocument()
@@ -212,7 +304,7 @@ describe('Overview tab', () => {
 
   it('keeps the stop reason behind a technical-details disclosure', async () => {
     stubFetch(routes())
-    render(<OverviewTab run={RUN} live={live} version={0} />)
+    render(<Harness run={RUN} live={live} version={0} />)
     const summary = await screen.findByText('Technical stop details')
     expect(summary.closest('details')).not.toHaveAttribute('open')
     expect(summary.closest('details')).toHaveTextContent('corrective rounds exhausted (1)')
@@ -220,7 +312,7 @@ describe('Overview tab', () => {
 
   it('says so when nothing is connected, and shows a failed run without any answer', async () => {
     stubFetch({ ...routes(), '/runs/7/claims': [], '/runs/7/report': { __status: 404, detail: 'none' } })
-    render(<OverviewTab run={{ ...RUN, report_outcome: null, verify_status: 'failed', complete_status: 'failed' }} live={{ ...live, events: live.events.slice(0, 2), run: { ...RUN, report_outcome: null, verify_status: 'failed', complete_status: 'failed' }, completion: { ...completion, stop_reason: 'drafter failed: timeout' } }} version={0} />)
+    render(<Harness run={{ ...RUN, report_outcome: null, verify_status: 'failed', complete_status: 'failed' }} live={{ ...live, events: live.events.slice(0, 2), run: { ...RUN, report_outcome: null, verify_status: 'failed', complete_status: 'failed' }, completion: { ...completion, stop_reason: 'drafter failed: timeout' } }} version={0} />)
     expect(await screen.findByText('Drafting failed after collection finished.')).toBeInTheDocument()
     expect(screen.getByText(/nothing to connect/)).toBeInTheDocument()
     expect(screen.getByText('No answer was produced')).toBeInTheDocument()
