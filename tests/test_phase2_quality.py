@@ -6,7 +6,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from backend import db, services
+from backend import correction, db, services
 from backend.agents.relevance import content_words, shortlist
 from backend.agents.researcher import (
     QUERY_SYSTEM,
@@ -206,7 +206,9 @@ def test_shortlist_uses_content_words_and_a_minimum_overlap():
                 {"id": "S1-P1", "ordinal": 1, "text": "Tomatoes need sun."},
                 {"id": "S1-P2", "ordinal": 2, "text": "The storage was empty."}]
     assert [p["id"] for _, p in shortlist(sq, passages, top=2, min_overlap=2)] == ["S1-P0"]
-    assert "which" not in content_words("Which storage engines") and "storage" in content_words("Which storage engines")
+    words = content_words("Which storage engines")
+    assert "which" not in words and correction._stem("storage") in words  # stems: "engines" and "engine" now count as the same word
+    assert content_words("merging developers") == content_words("merge developer")
 
 
 # --- structured output, request IDs, parsing ------------------------------------------------------------------------------

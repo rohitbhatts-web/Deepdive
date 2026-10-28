@@ -15,11 +15,13 @@ class FakeMesh:
              "choose the pages": "select", "running a relevance check": "relevance",
         "You are the Drafter": "draft", "You are the Verifier": "verify",
         "You are the Coverage Assessor": "coverage", "You are the Reviser": "revise",
-        "You are the Obligation Analyst": "obligations",
+        "You are the Obligation Analyst": "obligations", "You are the Consistency Reviewer": "consistency",
         "You are the Synthesizer": "synth"}
 
     def __init__(self, *, report_usage=True, **replies):
         self.report_usage = report_usage
+        self.finish_reasons: dict[str, str] = {}  # per step; default "stop"
+        self.completion_tokens: dict[str, int] = {}  # per step; default 20
         self.replies = {k: list(v) if isinstance(v, list) else [v] for k, v in replies.items()}
         self.calls: list[dict] = []
         self.request_counter = 0
@@ -30,7 +32,8 @@ class FakeMesh:
         self.calls.append(kwargs)
         system = kwargs["messages"][0]["content"]
         step = next(name for marker, name in self.STEPS.items() if marker in system)
-        queue = self.replies.get(step) or ([{"assessments": []}] if step == "relevance" else None)
+        default = {"relevance": {"assessments": []}, "consistency": {"claims_reviewed": [], "findings": []}}  # unscripted: nothing reviewed, nothing flagged
+        queue = self.replies.get(step) or ([default[step]] if step in default else None)
         reply = queue.pop(0) if len(queue) > 1 else queue[0]
         if isinstance(reply, Exception):
             raise reply
@@ -39,8 +42,8 @@ class FakeMesh:
             found = re.search(r"<question>\n(.*?)\n</question>", kwargs["messages"][-1]["content"], re.DOTALL) or re.search(r"<question>\n(.*?)\n</question>", kwargs["messages"][1]["content"], re.DOTALL)
             text = text.replace("{QUESTION}", json.dumps(found.group(1))[1:-1] if found else "")
         return SimpleNamespace(
-            choices=[SimpleNamespace(message=SimpleNamespace(content=text), finish_reason="stop")],
-            usage=SimpleNamespace(prompt_tokens=100, completion_tokens=20, total_tokens=120) if self.report_usage else None,
+            choices=[SimpleNamespace(message=SimpleNamespace(content=text), finish_reason=self.finish_reasons.get(step, "stop"))],
+            usage=SimpleNamespace(prompt_tokens=100, completion_tokens=self.completion_tokens.get(step, 20), total_tokens=120) if self.report_usage else None,
         )
 
     def _create_raw(self, **kwargs):

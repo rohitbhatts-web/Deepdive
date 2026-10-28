@@ -315,4 +315,105 @@ CREATE TRIGGER IF NOT EXISTS obligation_support_no_update BEFORE UPDATE ON oblig
 BEGIN SELECT RAISE(ABORT, 'coverage assessments are immutable'); END;
 CREATE TRIGGER IF NOT EXISTS obligation_support_no_delete BEFORE DELETE ON obligation_supporting_claims
 BEGIN SELECT RAISE(ABORT, 'coverage assessments are never deleted'); END;
+
+-- A verified claim that coverage recorded as a DIRECT ANSWER to a requirement of ANOTHER subquestion is shown in that subquestion's section too. It stays ONE report
+-- claim (same text, same citations, owned by its own section); this row only points to it. Context-only judgments never create one.
+CREATE TABLE IF NOT EXISTS report_answer_refs (
+    id INTEGER PRIMARY KEY,
+    report_id INTEGER NOT NULL REFERENCES reports(id),
+    section_id INTEGER NOT NULL REFERENCES report_sections(id),
+    report_claim_id INTEGER NOT NULL REFERENCES report_claims(id),
+    requirement_keys TEXT NOT NULL DEFAULT '[]',
+    reason TEXT NOT NULL DEFAULT '',
+    UNIQUE (report_id, section_id, report_claim_id)
+);
+CREATE TRIGGER IF NOT EXISTS report_answer_refs_valid BEFORE INSERT ON report_answer_refs
+BEGIN
+    SELECT RAISE(ABORT, 'the section and the report claim must belong to this report')
+    WHERE (SELECT report_id FROM report_sections WHERE id = NEW.section_id) IS NOT NEW.report_id
+       OR (SELECT report_id FROM report_claims WHERE id = NEW.report_claim_id) IS NOT NEW.report_id;
+    SELECT RAISE(ABORT, 'a reference must point into a section other than the claim''s own')
+    WHERE (SELECT section_id FROM report_claims WHERE id = NEW.report_claim_id) IS NEW.section_id;
+    SELECT RAISE(ABORT, 'a reference needs a stored direct-answer judgment, in this report''s run and coverage round, for a requirement of that section''s subquestion')
+    WHERE NOT EXISTS (
+        SELECT 1 FROM claim_relevance cr
+        JOIN obligation_assessments oa ON oa.id = cr.obligation_assessment_id
+        JOIN coverage_assessments a ON a.id = oa.assessment_id
+        JOIN report_claims rc ON rc.id = NEW.report_claim_id
+        JOIN reports r ON r.id = NEW.report_id
+        JOIN report_sections s ON s.id = NEW.section_id
+        WHERE cr.claim_id = rc.claim_id AND cr.role = 'direct_answer'
+          AND a.run_id = r.run_id AND a.round IS r.coverage_round AND a.subquestion_id = s.subquestion_id);
+END;
+CREATE TRIGGER IF NOT EXISTS report_answer_refs_no_update BEFORE UPDATE ON report_answer_refs
+BEGIN SELECT RAISE(ABORT, 'report answer references are immutable'); END;
+CREATE TRIGGER IF NOT EXISTS report_answer_refs_no_delete BEFORE DELETE ON report_answer_refs
+BEGIN SELECT RAISE(ABORT, 'report answer references are never deleted'); END;
+-- Cross-claim consistency. A check is the model's (or a skip's) record about ONE exact input, identified by its fingerprint; it says how much was examined (status)
+-- and, separately, what was flagged (findings). Both tables and the report snapshots are append-only.
+CREATE TABLE IF NOT EXISTS consistency_checks (
+    id INTEGER PRIMARY KEY,
+    run_id INTEGER NOT NULL REFERENCES runs(id),
+    fingerprint TEXT NOT NULL,
+    attempt INTEGER NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('reviewed', 'partial', 'failed', 'not_checked')),
+    cause TEXT NOT NULL DEFAULT '',
+    reason TEXT NOT NULL DEFAULT '',
+    model TEXT,
+    model_call_id INTEGER REFERENCES model_calls(id),
+    prompt_version TEXT NOT NULL,
+    input_chars INTEGER NOT NULL DEFAULT 0,
+    shown_claim_ids TEXT NOT NULL DEFAULT '[]',
+    unchecked_claim_ids TEXT NOT NULL DEFAULT '[]',
+    claims_reviewed TEXT NOT NULL DEFAULT '[]',
+    claim_states TEXT NOT NULL DEFAULT '{}',
+    dropped_findings TEXT NOT NULL DEFAULT '[]',
+    created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS consistency_findings (
+    id INTEGER PRIMARY KEY,
+    check_id INTEGER NOT NULL REFERENCES consistency_checks(id),
+    kind TEXT NOT NULL CHECK (kind IN ('conflict', 'scope', 'condition', 'time', 'terminology')),
+    explanation TEXT NOT NULL,
+    claim_ids TEXT NOT NULL,
+    evidence TEXT NOT NULL DEFAULT '[]'
+);
+CREATE TABLE IF NOT EXISTS report_consistency (
+    report_id INTEGER PRIMARY KEY REFERENCES reports(id),
+    check_id INTEGER REFERENCES consistency_checks(id),
+    status TEXT NOT NULL CHECK (status IN ('reviewed', 'partial', 'failed', 'not_checked', 'not_applicable')),
+    cause TEXT NOT NULL DEFAULT '',
+    reason TEXT NOT NULL DEFAULT '',
+    fingerprint TEXT NOT NULL DEFAULT '',
+    shown_claim_ids TEXT NOT NULL DEFAULT '[]',
+    unchecked_claim_ids TEXT NOT NULL DEFAULT '[]',
+    claim_states TEXT NOT NULL DEFAULT '{}',
+    dropped_findings TEXT NOT NULL DEFAULT '[]'
+);
+CREATE TABLE IF NOT EXISTS report_consistency_findings (
+    id INTEGER PRIMARY KEY,
+    report_id INTEGER NOT NULL REFERENCES reports(id),
+    kind TEXT NOT NULL,
+    explanation TEXT NOT NULL,
+    claim_ids TEXT NOT NULL,
+    evidence TEXT NOT NULL DEFAULT '[]',
+    carried_from_check INTEGER REFERENCES consistency_checks(id)
+);
+CREATE INDEX IF NOT EXISTS idx_consistency_run ON consistency_checks(run_id, fingerprint, id);
+CREATE TRIGGER IF NOT EXISTS consistency_checks_no_update BEFORE UPDATE ON consistency_checks
+BEGIN SELECT RAISE(ABORT, 'consistency checks are immutable history'); END;
+CREATE TRIGGER IF NOT EXISTS consistency_checks_no_delete BEFORE DELETE ON consistency_checks
+BEGIN SELECT RAISE(ABORT, 'consistency checks are never deleted'); END;
+CREATE TRIGGER IF NOT EXISTS consistency_findings_no_update BEFORE UPDATE ON consistency_findings
+BEGIN SELECT RAISE(ABORT, 'consistency findings are immutable history'); END;
+CREATE TRIGGER IF NOT EXISTS consistency_findings_no_delete BEFORE DELETE ON consistency_findings
+BEGIN SELECT RAISE(ABORT, 'consistency findings are never deleted'); END;
+CREATE TRIGGER IF NOT EXISTS report_consistency_no_update BEFORE UPDATE ON report_consistency
+BEGIN SELECT RAISE(ABORT, 'reports are immutable snapshots'); END;
+CREATE TRIGGER IF NOT EXISTS report_consistency_no_delete BEFORE DELETE ON report_consistency
+BEGIN SELECT RAISE(ABORT, 'reports are never deleted'); END;
+CREATE TRIGGER IF NOT EXISTS report_consistency_findings_no_update BEFORE UPDATE ON report_consistency_findings
+BEGIN SELECT RAISE(ABORT, 'reports are immutable snapshots'); END;
+CREATE TRIGGER IF NOT EXISTS report_consistency_findings_no_delete BEFORE DELETE ON report_consistency_findings
+BEGIN SELECT RAISE(ABORT, 'reports are never deleted'); END;
 """

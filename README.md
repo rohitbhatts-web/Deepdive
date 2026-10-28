@@ -1,8 +1,12 @@
 # DeepDive: Agent Arena 2026
 
 A research assistant that answers a question from web evidence it can show. It plans subquestions, searches and fetches pages, drafts atomic claims with verbatim quotes, checks every quote deterministically,
-has a separate verifier judge each claim against its cited passage, runs a bounded correction loop for what is missing, and assembles a report from the exact verified text. Stack: FastAPI + LangGraph +
-SQLite backend, a React frontend (`frontend/`), and the OpenAI SDK pointed at Mesh API. Every model call goes through one shared Mesh client; every run has hard limits on requests, searches, page fetches, tokens and time.
+has a separate verifier judge each claim against its cited passage, runs a bounded correction loop for what is missing, checks the verified claims against each other for possible conflicts, and assembles a
+report from the exact verified text. Stack: FastAPI + LangGraph + SQLite backend, a React frontend (`frontend/`), and the OpenAI SDK pointed at Mesh API. Every model call goes through one shared Mesh client;
+every run has limits on requests, searches, page fetches, tokens and time, and a request-budget policy keeps optional work from using the share the final assessment needs.
+
+**This release:** public release candidate of 28 Oct 2026 (database schema version 12; evaluation dataset variant `public-export-v1`, unchanged). What
+changed since the previous public version, and how it was checked: [PUBLIC_RELEASE.md](PUBLIC_RELEASE.md).
 
 ## What has been demonstrated, and what has not
 
@@ -10,17 +14,30 @@ SQLite backend, a React frontend (`frontend/`), and the OpenAI SDK pointed at Me
 - The pipeline runs end to end and records everything (searches, fetches, passages, claims, verdicts, coverage, reports, model calls, failures); failed and empty runs are kept and shown as such in the UI.
 - A small, AI-assisted development evaluation: a frozen claim-verification pilot (12 reviewed claims, 9 of 12 in agreement with the reviewed labels, under an earlier verifier rubric), two end-to-end pilot questions, and a six-case answer-relevance check
   with one follow-up (both follow-up cases agreed with their pre-recorded expectations). Details and every failure are in `docs/PHASE6A.md`.
+- **One completed live run** (28 Oct 2026, this code) for "How do Git merge and Git rebase differ in their effect on commit history, and when should a
+  developer choose each?": four verified, cited claims, one per subquestion; 20 model requests in about 201 s, five of whose replies were explicit cache hits
+  at the provider. The pipeline's own assessments: its coverage model judged 12 of 12 evidence requirements addressed, and the cross-claim check flagged no
+  conflict. A review afterwards against the stored passages (by the AI coding assistant, not an independent review) found every citation supports its claim,
+  with caveats: the "when to choose" advice rests on a single page; the merge claim omits that a merge can fast-forward without creating a merge commit (the
+  claim that carried that exception was excluded as only partly supported); and the consistency check saw one claim's evidence shortened. This is one run,
+  not evidence of general reliability or accuracy. Its sources are not on the cleared list, so its evidence is **not** published here or in the hosted demo;
+  it is shown in a locally recorded walkthrough.
 
 **Not demonstrated / limitations**
 - **Small and AI-assisted.** The labels are "AI-assisted human review; not independent or blinded". There are 12 reviewed examples from one domain (SQLite/PostgreSQL evidence) and two end-to-end questions; no held-out example has been run. Agreement with
   expectations is not accuracy, and the runs used evaluation budgets that differ from the product defaults.
 - **Incomplete answers.** The best Q02 report (HTTP/2 and HTTP/3 RFC dates and transport layers) still lacks the HTTP/3 RFC date and a direct statement of HTTP/2's transport; the Q05 run (a private company's profit figure) found no usable primary source and produced an empty,
   clearly labelled "insufficient evidence" report. An empty or partial report does not show the answer does not exist.
-- **Model timeouts.** Each model request has a 60 s wall-clock limit and is never retried invisibly; a timed-out drafting call failed one pilot run. A person can retry from the stored evidence (a visible, paid action; no search or fetch).
+- **Model timeouts.** Each model request has a 90 s wall-clock limit (`MESH_TIMEOUT`; 60 s until 24 Oct 2026) and is never retried invisibly; a timed-out drafting call failed one pilot run. 90 s is a provisional choice based on two observed 61 s and 66 s planner responses, not a reliability guarantee. A person can retry from the stored evidence (a visible, paid action; no search or fetch).
 - **PDFs are unsupported** (such results are skipped and counted), so annual reports and filings are out of reach. No JavaScript rendering.
 - **Relevance and coverage are model judgements.** Support (the verifier) and answer relevance (the coverage stage) are judged separately; a wrong relevance judgement is not caught by code, and the original-versus-revision check is a narrow wording heuristic.
   Verdicts from an older verifier contract are kept as history but are not trusted for new reports until re-verified.
-- **Recorded, not live.** There is no hosted instance; the demo script replays stored runs and starts no research.
+- **Recorded, not live.** The hosted demo replays an older, cleared recorded dataset (21-22 Oct 2026), not the 28 Oct run, and starts no research.
+- **Cross-claim consistency is a model judgement.** A conflict the model does not flag stays unflagged; "no conflicts flagged" is not "consistent", and a
+  check that saw shortened evidence says so. See `docs/CROSS_CLAIM_CONSISTENCY.md`.
+- **Budget limits are tight.** One 20-request, 300 s job leaves little margin; a slow call can leave few verified claims, and the report then says what was
+  not done or not assessed (`docs/REQUEST_BUDGET_POLICY.md`). Output tokens are checked before each call, so the last call can pass the 15,000-token total
+  by up to its 1,500-token cap.
 
 ## Setup
 
@@ -45,9 +62,14 @@ cd frontend && npm run dev                   # React UI on http://localhost:5173
 
 ## Hosted recorded demo (read-only)
 
-`backend.public` serves the production React build and the API from one origin, with one worker, SQLite on a volume and **every write refused** (research, retry, verify, complete, sources); it holds no provider key and starts nothing live.
-It shows two recorded development runs, labelled as such, from a sanitized seed (`demo/seed.sql.gz`) in which pages whose redistribution rights are not cleared appear as a marker. Instructions, health checks, volume and backup: [docs/HOSTING.md](docs/HOSTING.md).
-A `Dockerfile` and a Render `render.yaml` are prepared; nothing is deployed.
+`backend.public` serves the production React build and the API from one origin, with one worker and **every write refused** (research, retry, verify,
+complete, sources); it holds no provider key and starts nothing live. Its database is built offline from the committed, sanitized seed and update packages
+(`python -m backend.demo_seed --build`, done while the Docker image is built) and is only ever opened read-only.
+
+It shows two recorded development runs and one development check from 21-22 Oct 2026, labelled as such. Pages whose redistribution rights are not cleared
+appear as a marker: their URL, title and date are shown, but their text and the quotes from them cannot be read or checked on the site. It does **not**
+contain the completed live run of 28 Oct 2026. The project owner reports a deployment at https://deepdive-demo.onrender.com/ of the previous version
+(not verified here); this version is not deployed. Instructions, deployment and rollback: [docs/HOSTING.md](docs/HOSTING.md).
 
 ## Checks
 
@@ -55,7 +77,7 @@ A `Dockerfile` and a Render `render.yaml` are prepared; nothing is deployed.
 uv run pytest                  # deterministic; no network, no model calls (temp DBs, mock HTTP transport, fake DNS, scripted model replies)
 uv run ruff check .
 cd frontend && npm run check   # typecheck + Vitest + build
-node --test scripts/ui_acceptance/lib.test.mjs scripts/ui_acceptance/owned.test.mjs   # UI-acceptance tooling
+node --test scripts/ui_acceptance/lib.test.mjs scripts/ui_acceptance/owned.test.mjs scripts/live_demo.test.mjs   # local tooling
 ```
 
 Scripted tests establish orchestration and routing, not model accuracy.
@@ -222,13 +244,20 @@ Limits (env/`Settings`): connect/read/total timeouts, 5 redirects, 2 MB body. Da
 - Time limits are best effort. DNS lookups are bounded (`FETCH_DNS_TIMEOUT`, 5 s) and a timeout is recorded as a failed
   `timeout` attempt, but the OS lookup cannot be cancelled: it finishes on an abandoned daemon thread (at most 8 at a
   time). `FETCH_TOTAL_TIMEOUT` is checked at each redirect hop and between body chunks, so one blocked socket operation
-  can overrun it by up to the connect/read timeout. A research run's `MAX_ELAPSED_SECONDS` is checked only before each
-  model request, search and page fetch, so the last step can overrun it by up to that step's own timeout.
+  can overrun it by up to the connect/read timeout. A research run's `MAX_ELAPSED_SECONDS` is checked before each
+  model request, search and page fetch. A model request's own deadline is capped at the time remaining, so it cannot run past the limit; a search or page fetch that
+  starts just before the limit can finish up to its own timeout after it (search 20 s, fetch `FETCH_TOTAL_TIMEOUT` 30 s), and database and other local work between
+  actions is not bounded. It is not a hard whole-job limit.
 - Environment proxies (`HTTP_PROXY`, ...) are ignored by the page fetcher (`trust_env=False`); fetching from behind a
   mandatory proxy is unsupported until a proxy design is reviewed.
-- Model requests use the shared Mesh client with SDK retries disabled and a 60 s timeout (`MESH_TIMEOUT`); a transient
-  Mesh error fails that step (and the run) instead of being retried invisibly.
+- Model requests use the shared Mesh client with SDK retries disabled and a 90 s timeout (`MESH_TIMEOUT`, provisional). The SDK applies that one value to the connect, read, write and
+  pool timeouts as well, so a connection that never opens also waits up to 90 s. A transient Mesh error fails that step (and the run) instead of being retried invisibly.
 - Ports other than 80/443 are refused, which also blocks some legitimate sites.
+- Source and format preferences in a question (for example "Use official Git documentation where possible") are currently treated like any other part of
+  the question: the planner must list an ask for the sentence and a subquestion covers it. The plan check is lexical: it only requires that some ask quote
+  overlaps each clause of the question. Passing it does not establish that the preference was followed; no stage checks that the sources used are official, or
+  measures how well the answer honours a preference. A plan that omits such an ask is rejected and gets one bounded repair request. Each rejection stores the
+  rejected plan (asks, subquestions and problems) in the run's `plan_rejected` event.
 - URL fragments are not stripped, so `page#a` after `page` is fetched again and then deduplicated by content hash.
 - Passage "context" means adjacent short paragraphs are packed into one passage (up to `PASSAGE_TARGET_CHARS`); there is
   no separate context field or overlap between passages.
@@ -243,7 +272,8 @@ Limits (env/`Settings`): connect/read/total timeouts, 5 redirects, 2 MB body. Da
 - `frontend/`: React + TypeScript UI (run page, report, evidence inspector, coverage, history, usage)
 - `evaluation/`: datasets, rubrics, harnesses, review sheets, recorded results (`results/`)
 - `scripts/`: live and acceptance tooling; `scripts/ui_acceptance/owned.mjs` stops only processes it launched
-- `tests/`: pytest; `docs/`: design notes, per-stage reviews, `DEMO.md` (recorded-run demo script)
+- `tests/`: pytest; `docs/`: design notes, per-stage reviews, `DEMO.md` (the 22 Oct recorded-run demo script), `HOSTING.md`
+- `demo/`: the hosted demo's committed inputs (sanitized seed, update packages, UI labels); no database file
 - `data/`: local SQLite files (git-ignored; they hold fetched page text)
 
 The Mesh client lives in `backend/mesh_client.py`; use `get_mesh_client()` everywhere. Base URL:
@@ -251,6 +281,8 @@ The Mesh client lives in `backend/mesh_client.py`; use `get_mesh_client()` every
 
 ## Documentation
 
-Start with `docs/PLAN.md` (architecture), `docs/PHASE6A.md` (evaluation, failures and fixes), `docs/DEMO.md`, [PUBLIC_RELEASE.md](PUBLIC_RELEASE.md) (what the public export withholds) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+Start with `docs/PLAN.md` (architecture), `docs/PHASE6A.md` (evaluation, failures and fixes), `docs/REQUEST_BUDGET_POLICY.md`,
+`docs/CROSS_CLAIM_CONSISTENCY.md`, `docs/HOSTING.md`, [PUBLIC_RELEASE.md](PUBLIC_RELEASE.md) (what this release contains and withholds) and
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 UI progress can be exercised without credits with `scripts/ui_sim_backend.py` (SIMULATED backend: real API and database code, scripted events, no model/search/fetch calls; see docs/PHASE5_REVIEW.md).

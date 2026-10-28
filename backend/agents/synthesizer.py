@@ -23,11 +23,17 @@ EXAMPLE = {"sections": [{"subquestion_id": 1, "claim_ids": [2, 5]}],
            "omitted": [{"claim_id": 7, "reason": "duplicates claim 2"}]}
 
 
-def plan_synthesis(conn: sqlite3.Connection, llm: LLM, budget: Budget, settings: Settings, run_id: int) -> tuple[SynthesisPlan, int | None]:
+def plan_synthesis(conn: sqlite3.Connection, llm: LLM, budget: Budget, settings: Settings, run_id: int,
+                   conflicts: list[dict] | None = None) -> tuple[SynthesisPlan, int | None]:
     subqs = db.list_subquestions(conn, run_id)
     eligible = claims.eligible_claims(conn, run_id)
     user = ("\n".join(f'<subquestion id="{s["id"]}">{s["question"]}</subquestion>' for s in subqs) + "\n\n"
             + "\n".join(f'<claim id="{c["id"]}" subquestion_id="{c["subquestion_id"]}">{c["text"]}</claim>' for c in eligible))
-    plan = llm.call(conn, run_id, budget, agent="synthesizer", model=settings.effective_synthesizer_model, system=SYSTEM,
+    system = SYSTEM
+    if conflicts:  # claims flagged as possibly contradicting each other: never duplicates of one another, shown side by side
+        user += "\n\n" + "\n".join(
+            f'<possible_conflict claims="{",".join(str(i) for i in f["claim_ids"])}">{f["explanation"]}</possible_conflict>' for f in conflicts)
+        system += (" Claims named together in a possible_conflict are NOT duplicates: never list them under omitted, and place them next to each other in their sections.")
+    plan = llm.call(conn, run_id, budget, agent="synthesizer", model=settings.effective_synthesizer_model, system=system,
                     user=user, schema=SynthesisPlan, example=EXAMPLE)
     return plan, llm.last_call_id

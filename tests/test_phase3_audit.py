@@ -53,7 +53,7 @@ def mixed(conn, settings):
     claims.check_integrity(conn, ids["unjudged"], settings)
     ids["stale_v1"] = add(conn, r, Q0, r["p"](0), Q0)
     judged(conn, settings, ids["stale_v1"], "supported", [(r["p"](0), "claim_evidence")])
-    ids["stale_v2"] = add(conn, r, "SQLite is a C library.", r["p"](0), Q0, parent_claim_id=ids["stale_v1"], version=2)
+    ids["stale_v2"] = add(conn, r, "SQLite runs as a library.", r["p"](0), Q0, parent_claim_id=ids["stale_v1"], version=2)
     claims.check_integrity(conn, ids["stale_v2"], settings)
     return r, ids
 
@@ -82,7 +82,7 @@ def test_every_api_path_agrees_with_the_single_eligibility_rule(client, verify_e
     judged(conn, s, ids["test_input"], "supported", [(r["p"](0), "claim_evidence")])
     ids["v1"] = add(conn, r, Q0, r["p"](0), Q0)
     judged(conn, s, ids["v1"], "supported", [(r["p"](0), "claim_evidence")])
-    add(conn, r, "SQLite is a C library.", r["p"](0), Q0, parent_claim_id=ids["v1"], version=2)
+    add(conn, r, "SQLite runs as a library.", r["p"](0), Q0, parent_claim_id=ids["v1"], version=2)
     conn.close()
     run = r["run"]
     listed = {c["id"]: c for c in client.get(f"/runs/{run}/claims").json()}
@@ -136,12 +136,12 @@ def test_two_quotes_from_one_passage_are_both_linked(conn, settings):
     r = seed_collected_run(conn)
     with db.tx(conn):
         cid = claims.add_claim(conn, r["run"], r["sq1"], "SQLite is embedded in the application and stores data in one file.",
-                               [(r["p"](0), "SQLite is a C library embedded directly in the application process."),
-                                (r["p"](0), "The database is a single file on disk.")], origin="drafted")
+                               [(r["p"](0), "SQLite runs as a library inside the process of the calling program."),
+                                (r["p"](0), "Each database is kept in one ordinary file.")], origin="drafted")
     claims.check_integrity(conn, cid, settings)
     result, _ = run_verifier(conn, settings, cid, verdict("supported", used=[r["p"](0)]))
     assert result["evidence_ids"] == [e["id"] for e in claims.claim_evidence(conn, cid)] and len(result["evidence_ids"]) == 2
-    assert claims.get_claim(conn, r["run"], cid)["citations"][0]["quotes"][0].startswith("SQLite is a C library")
+    assert claims.get_claim(conn, r["run"], cid)["citations"][0]["quotes"][0].startswith("SQLite runs as a library")
 
 
 def test_a_verdict_cannot_use_another_runs_passage_and_result_passages_are_immutable(conn, settings):
@@ -225,7 +225,7 @@ def test_unsupported_may_cite_nothing_and_stays_unsupported_not_error(conn, sett
     """Found by the live recheck: an unrelated claim was judged 'unsupported' (no passage establishes it) but was
     stored as 'error' because it cited no evidence. 'unsupported' is a real verdict with nothing to cite."""
     r = seed_collected_run(conn)
-    cid = add(conn, r, "The first stable release of SQLite came out in 2004.", r["p"](0), "SQLite is a C library embedded directly")
+    cid = add(conn, r, "The first stable release of SQLite came out in 2004.", r["p"](0), "SQLite runs as a library inside")
     claims.check_integrity(conn, cid, settings)
     result, _ = run_verifier(conn, settings, cid, verdict("unsupported", used=[], unsupported=["the release year"], date="missing"))
     assert result["verdict"] == "unsupported" and result["passages"] == [] and result["evidence_ids"] == []

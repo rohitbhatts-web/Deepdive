@@ -73,9 +73,9 @@ def test_no_evidence_and_blank_claim_text_fail(conn, settings, run):
     ("", "quote is empty"),
     ("   ", "quote is empty"),
     ("SQLite is", "shorter than"),  # a short quote proves nothing even though it occurs
-    ("SQLite is a Python library embedded directly in the application process.", "does not occur"),
-    ("sqlite is a c library embedded directly in the application process.", "does not occur"),  # case is not normalised
-    ("The database is a single file on disk. SQLite is a C library embedded directly in the application process.", "does not occur"),
+    ("SQLite runs as a service inside the process of the calling program.", "does not occur"),
+    ("sqlite runs as a library inside the process of the calling program.", "does not occur"),  # case is not normalised
+    ("Each database is kept in one ordinary file. SQLite runs as a library inside the process of the calling program.", "does not occur"),
 ])
 def test_bad_quotes_are_rejected(conn, settings, run, quote, problem):
     result = check(conn, settings, make(conn, run, Q0, [(run["p"](0), quote)]))
@@ -91,9 +91,9 @@ def test_quote_with_a_changed_number_or_date_does_not_match(conn, settings, run)
 
 
 @pytest.mark.parametrize("quote", [
-    "SQLite is a C library embedded\ndirectly in the application process.",  # newline for a space
-    "SQLite  is a C library embedded directly in the application process.",  # double and non-breaking space
-    "SQLite is a C library\u200b embedded directly in the application process.",  # zero-width character
+    "SQLite runs as a library\ninside the process of the calling program.",  # newline for a space
+    "SQLite  runs as a library inside the process of the calling program.",  # double and non-breaking space
+    "SQLite runs as a library\u200b inside the process of the calling program.",  # zero-width character
 ])
 def test_conservative_normalisation_is_accepted_and_labelled(conn, settings, run, quote):
     ref = check(conn, settings, make(conn, run, Q0, [(run["p"](0), quote)]))["details"]["references"][0]
@@ -135,7 +135,7 @@ def test_a_new_version_is_a_new_row_and_does_not_inherit_the_old_verdict(conn, s
     check(conn, settings, v1)
     with db.tx(conn):
         claims.record_result(conn, v1, "semantic", "supported", "fixture", model="m")
-    v2 = make(conn, run, "SQLite is a C library.", [(run["p"](0), Q0)], parent_claim_id=v1, version=2)
+    v2 = make(conn, run, "SQLite runs as a library.", [(run["p"](0), Q0)], parent_claim_id=v1, version=2)
     old, new = claims.get_claim(conn, run["run"], v1), claims.get_claim(conn, run["run"], v2)
     assert old["status"] == "supported" and old["text"] == Q0  # untouched
     assert (new["status"], new["eligible_for_report"], new["version"], new["parent_claim_id"]) == ("drafted", False, 2, v1)
@@ -186,7 +186,7 @@ def test_schema_v3_database_gains_phase3_tables_without_losing_rows(tmp_path):
     path = tmp_path / "v3.db"
     c = db.connect(path)
     run = seed_collected_run(c)
-    c.executescript("DROP TABLE report_claim_roles; DROP TABLE report_relevance; DROP TABLE claim_relevance; DROP TABLE obligation_supporting_claims; DROP TABLE obligation_assessments; DROP TABLE coverage_obligations;"
+    c.executescript("DROP TABLE report_answer_refs; DROP TABLE report_claim_roles; DROP TABLE report_relevance; DROP TABLE claim_relevance; DROP TABLE obligation_supporting_claims; DROP TABLE obligation_assessments; DROP TABLE coverage_obligations;"
                     " DROP TABLE report_omissions; DROP TABLE report_gaps; DROP TABLE report_citations;"
                     " DROP TABLE report_claims; DROP TABLE report_sections; DROP TABLE reports;"
                     " DROP TABLE coverage_supporting_claims; DROP TABLE coverage_assessments; DROP TABLE correction_tasks;"

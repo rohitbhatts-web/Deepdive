@@ -20,7 +20,10 @@ class Settings(BaseSettings):
 
     mesh_api_key: str = ""
     mesh_base_url: str = MESH_BASE_URL
-    mesh_timeout: float = 60.0  # seconds per model request; the SDK default of 600s would outlast any run budget
+    # Seconds per model request (the wall-clock deadline, also applied by the SDK to connect, read, write and pool). 90 is a PROVISIONAL operational choice: Mesh completed two
+    # planner requests in 61.1 s and 65.6 s that the earlier 60 s default had cancelled. It accommodates slow responses; it does not make the provider faster or more reliable.
+    # The SDK default of 600 s would outlast any run budget; the job's remaining time still caps every request (Budget.call_timeout).
+    mesh_timeout: float = 90.0
     min_call_seconds: float = 10.0  # a model request is not started with less job time than this left (it could not finish before the deadline)
     database_path: str = "data/deepdive.db"
     # Hosted recorded demo (see docs/HOSTING.md). When true the backend refuses every mutation, opens SQLite read-only and builds no provider client.

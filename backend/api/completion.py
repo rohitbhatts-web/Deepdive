@@ -154,6 +154,8 @@ class ReportClaimOut(BaseModel):
     requirement_keys: list[str] = []
     role_reason: str | None = None
     requirement_texts: list[str] = []  # the requirements this claim directly answers (judged reports)
+    cross_reference: dict[str, Any] | None = None  # set when this section shows a claim owned by another section (same verified claim, not a copy)
+    conflicts: list[dict[str, Any]] = []  # flagged possible conflicts this claim is part of: [{finding_id, with_claim_ids}]; empty for none and for older reports
     citations: list[CitationOut]
 
 
@@ -184,8 +186,11 @@ class ReportOut(BaseModel):
     verifier_rubrics: list[str] = []
     sections: list[ReportSectionOut]
     requirements: list[dict[str, Any]]
-    unresolved_requirements: list[dict[str, Any]]
+    unresolved_requirements: list[dict[str, Any]]  # assessed as not (fully) answered
+    unassessed_requirements: list[dict[str, Any]] = []  # NOT assessed (no coverage assessment covers them): unknown, not unanswered
+    coverage_assessed: bool | None = None  # False: the report was built without any coverage assessment
     omissions: list[dict[str, Any]]
+    consistency: dict[str, Any] = {"status": "not_recorded", "findings": []}  # cross-claim check: `status` = how much was checked, `findings` = what was flagged (independent)
     markdown: str
 
 

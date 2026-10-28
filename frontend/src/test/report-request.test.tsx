@@ -35,7 +35,7 @@ describe('report request', () => {
 describe('failed run header', () => {
   const research: ResearchStatus = {
     run_id: 7, status: 'failed', stop_reason: 'interrupted: server restarted during research', updated_at: RUN.updated_at, subquestions_by_status: {},
-    counts: { searches: 1, sources: 0, page_fetch_attempts: 0 }, model_usage: { model_calls: 2, failed_calls: 0, prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 },
+    counts: { searches: 1, sources: 0, page_fetch_attempts: 0 }, model_usage: { model_calls: 2, failed_calls: 0, calls_with_usage: 2, prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 },
     limits: { model_requests: 20, search_queries: 8, page_fetches: 12 },
   }
   const completion: Completion = {

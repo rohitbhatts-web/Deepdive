@@ -1,7 +1,8 @@
 """Versioned, backed-up, duplicate-refusing updates of the hosted demo database.
 
-The deployed database lives on a persistent volume and is never rebuilt from the seed, so a new recorded run reaches it through an UPDATE PACKAGE
-(`demo/updates/<id>.json.gz`, built by scripts/build_demo_update.py). Applying one:
+A new recorded run reaches the demo through an UPDATE PACKAGE (`demo/updates/<id>.json.gz`, built by scripts/build_demo_update.py). The offline build
+(`python -m backend.demo_seed --build`) applies every package to the seed before the schema upgrade; the read-only server applies nothing. The commands
+below still work on an existing database file (for example a copy of an older deployment's volume), never on one a server is using. Applying one:
 
   1. refuses if its id is already in the `demo_updates` ledger, or if a run with the same content key (question + creation time) already exists
      (so a restored backup or a missing ledger cannot import the run twice);
@@ -14,7 +15,6 @@ The deployed database lives on a persistent volume and is never rebuilt from the
     python -m backend.demo_update --status
     python -m backend.demo_update --dry-run                 # what would be applied, nothing written
     python -m backend.demo_update --apply demo/updates/0002-a1a2-v5.json.gz [--backup-dir /data/backups]
-    python -m backend.public       # at start-up applies every pending package in id order (the same steps), then serves read-only
 """
 
 import argparse
@@ -186,20 +186,6 @@ def apply_update(db_path: str | Path, package_path: str | Path, backup_dir: str 
         return {"applied": package["id"], "rows": counts, "runs": [r["new_run_id"] for r in package["runs"]], "backup": str(backup)}
     finally:
         conn.close()
-
-
-def apply_pending(db_path: str | Path, updates_dir: str | Path, backup_dir: str | Path) -> dict:
-    """Apply every package not yet applied, in id order. 'Already applied' is normal at every restart; any other refusal is reported and leaves the database untouched."""
-    result: dict = {"applied": [], "skipped": [], "error": None}
-    for path in list_packages(updates_dir):
-        try:
-            result["applied"].append(apply_update(db_path, path, backup_dir))
-        except AlreadyApplied:
-            result["skipped"].append(path.name)
-        except Exception as exc:  # noqa: BLE001 - reported, never raised: the demo keeps serving what it has
-            result["error"] = f"{path.name}: {type(exc).__name__}: {exc}"
-            break
-    return result
 
 
 def main(argv: list[str] | None = None) -> int:

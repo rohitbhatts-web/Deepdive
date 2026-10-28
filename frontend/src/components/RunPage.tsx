@@ -5,6 +5,7 @@ import { usePolling } from '@/hooks/useApi'
 import { useDemo } from '@/hooks/useDemo'
 import { failureNotice, isRunActive, runStatusLabel } from '@/lib/claimState'
 import { hrefFor, TABS, type Tab } from '@/lib/route'
+import { latestJobBudget, latestJobRequests, tokenValue, usageState } from '@/lib/usage'
 import { cn } from '@/lib/utils'
 import { ErrorBox, Loading, Notice, Pill, StatTile, num, when } from './bits'
 import { CoverageTab } from './CoverageTab'
@@ -48,12 +49,6 @@ export async function loadLive(runId: number, signal: AbortSignal): Promise<Live
   return { run, research, completion, events }
 }
 
-/** The last finished completion job's own budget line, or Unavailable (collection-only runs and running jobs have none yet). */
-export function latestJobRequests(c: Completion): string {
-  const r = c.budget_used_of_limit?.model_requests
-  return r ? `${num(r[0])} / ${num(r[1])}` : 'Unavailable'
-}
-
 export function RunPage({ runId, tab, claimId, interval = 2000, onTerminal }: { runId: number; tab: Tab; claimId: number | null; interval?: number; onTerminal?: () => void }) {
   const [restarts, setRestarts] = useState(0) // bumped when a confirmed retry starts, so polling begins again for the new job
   const { info: demo } = useDemo()
@@ -80,6 +75,7 @@ export function RunPage({ runId, tab, claimId, interval = 2000, onTerminal }: { 
   const failure = active ? null : failureNotice(run, completion)
   const stoppedEarly = !active && !failure && (run.complete_status === 'stopped' || run.status === 'stopped')
   const used = research.model_usage
+  const jobBudget = latestJobBudget(events, completion)
   const announcement = active ? `Run ${run.id} is in progress.` : `Run ${run.id}: ${status.label}.`
 
   return (
@@ -98,8 +94,8 @@ export function RunPage({ runId, tab, claimId, interval = 2000, onTerminal }: { 
         {tab === 'overview' && <div className="@container md:pr-[8%]"><LifecycleStrip run={run} events={events} completion={completion} /></div>}
         {tab !== 'overview' && <dl className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6" aria-label="Run summary">
           <StatTile label="Total model calls for this run">{`${num(used.model_calls)}${used.failed_calls ? ` (${used.failed_calls} failed)` : ''}`}</StatTile>
-          <StatTile label="Latest job requests used / limit">{latestJobRequests(completion)}</StatTile>
-          <StatTile label="Tokens in / out (all calls)">{`${num(used.prompt_tokens)} / ${num(used.completion_tokens)}`}</StatTile>
+          <StatTile label="Latest job requests used / limit" hint={jobBudget ? `Recorded by the ${jobBudget.source}` : 'No job has recorded its final budget'}>{latestJobRequests(events, completion)}</StatTile>
+          <StatTile label={usageState(used) === 'partial' ? `Tokens in / out (usage from ${used.calls_with_usage ?? 0} of ${used.model_calls} calls)` : 'Tokens in / out (all calls)'}>{`${tokenValue(used.prompt_tokens, used)} / ${tokenValue(used.completion_tokens, used)}`}</StatTile>
           <StatTile label="Searches">{num(research.counts.searches)}</StatTile>
           <StatTile label="Sources">{num(research.counts.sources)}</StatTile>
           <StatTile label="Corrective rounds">{`${completion.corrective_rounds} of ${completion.max_corrective_rounds}`}</StatTile>

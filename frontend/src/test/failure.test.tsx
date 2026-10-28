@@ -15,7 +15,7 @@ const failedRun = { ...RUN, status: 'collection_finished', verify_status: 'faile
 const research: ResearchStatus = {
   run_id: 7, status: 'collection_finished', stop_reason: null, updated_at: RUN.updated_at, subquestions_by_status: {},
   counts: { searches: 8, sources: 9, passages: 155, page_fetch_attempts: 12 },
-  model_usage: { model_calls: 11, failed_calls: 1, prompt_tokens: 9670, completion_tokens: 1718, total_tokens: 11388 },
+  model_usage: { model_calls: 11, failed_calls: 1, calls_with_usage: 11, prompt_tokens: 9670, completion_tokens: 1718, total_tokens: 11388 },
   limits: { model_requests: 20, search_queries: 8, page_fetches: 12 },
 }
 const completion: Completion = {

@@ -1,5 +1,7 @@
-# Render Blueprint for the hosted RECORDED demo (read-only; no provider keys). Nothing is deployed until you create the Blueprint in Render.
-# One Docker web service, ONE instance (a persistent disk allows no more), SQLite on a 1 GB disk mounted at /data.
+# Render Blueprint for the hosted RECORDED demo (read-only; no provider keys). Nothing is deployed until you sync the Blueprint or deploy in Render.
+# One Docker web service, ONE instance. The demo database is built into the image (see Dockerfile) and opened read-only from /app/demo-db.
+# The 1 GB disk at /data is the previous version's storage: this version neither reads nor writes it. It stays attached so its database is kept
+# for a rollback (removing a disk from a service deletes its data). See docs/HOSTING.md, "Deploying this version" and "Rollback".
 services:
   - type: web
     name: deepdive-demo
@@ -18,4 +20,4 @@ services:
       - key: PUBLIC_READ_ONLY
         value: "1"
       - key: DATABASE_PATH
-        value: /data/deepdive.db
+        value: /app/demo-db/deepdive-demo.db

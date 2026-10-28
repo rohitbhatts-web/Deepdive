@@ -34,8 +34,8 @@ def messages_for(conn, settings, claim_ids, run_id):
 
 
 def test_identical_claims_and_evidence_under_different_subquestions_produce_identical_verifier_messages(conn, settings):
-    text = "SQLite is a C library embedded directly in the application process."
-    r, a, b = two_subquestions_one_claim(conn, settings, text, "SQLite is a C library embedded directly in the application process.")
+    text = "SQLite runs as a library inside the process of the calling program."
+    r, a, b = two_subquestions_one_claim(conn, settings, text, "SQLite runs as a library inside the process of the calling program.")
     first, second = messages_for(conn, settings, [a, b], r["run"])
     assert first == second  # system AND user message, character for character
     joined = first[0]["content"] + first[1]["content"]
@@ -68,7 +68,7 @@ def test_the_changed_input_contract_changes_the_recorded_prompt_hash_and_the_rub
 
 def test_no_older_supported_verdict_is_trusted_for_a_new_report_but_it_stays_as_history(conn, settings):
     r = seed_collected_run(conn)
-    cid = add(conn, r, "sq1", "SQLite is a C library embedded directly in the application process.", r["p"](0), "SQLite is a C library embedded directly in the application process.", settings)
+    cid = add(conn, r, "sq1", "SQLite runs as a library inside the process of the calling program.", r["p"](0), "SQLite runs as a library inside the process of the calling program.", settings)
     with db.tx(conn):
         claims.record_result(conn, cid, "semantic", "supported", "an older verdict", model="m", passages=[(r["p"](0), "claim_evidence")],
                              details={"rubric": "attribution-v4", "evidence_used": [r["p"](0)], "aspects": {}, "conflicts": [], "unsupported_details": []},

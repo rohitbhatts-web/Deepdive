@@ -54,7 +54,7 @@ drafter. The pre-run cost figure (about $0.04) was an estimate; actual usage is 
 | Claim | Origin | Evidence (id:passage) | Integrity | Semantic verdict | Eligible |
 |---|---|---|---|---|---|
 | #1 SQLite uses a file-based, embedded architecture with no server process | drafted | 1:S3-P14 | **failed** (result 1): quote occurs in no stored passage | none (never sent to the verifier) | no |
-| #2 PostgreSQL uses a client-server architecture and runs as a background process (daemon) | drafted | 2:S1-P1 | passed (2) | supported (4) | yes |
+| #2 [claim text withheld in the public export: it restates a rights-reserved page closely] (PostgreSQL's server process model) | drafted | 2:S1-P1 | passed (2) | supported (4) | yes |
 | #3 SQLite is ideal for prototyping, mobile, and local apps, while PostgreSQL is ideal for production, web apps, and analytics | drafted | 3:S1-P5 | passed (3) | supported (5) | yes (see mistakes) |
 | #4 PostgreSQL ... can take up to **100 MB** per connection | controlled_challenge, `test_input: true` | 4:S3-P12 (real quote says 10 MB) | passed (6) | contradicted (7) | **no** |
 | #5 SQLite allows **multiple processes** to write at the same time | controlled_challenge, `test_input: true` | 5:S1-P1 (real quote: "only one writer") | passed (8) | contradicted (9) | **no** |
@@ -68,7 +68,8 @@ Manual comparison with the stored passages:
 - **#1 integrity failure, correctly caught (not a semantic verdict).** The drafter's quote ("Architecture / SQLite / File Based (Embedded)") does not exist; the real
   table text in S1-P5 is "Embedded, file-based". The deterministic integrity check caught a misquoted table; the verifier never saw it, so there is no semantic verdict. The
   claim itself would probably have been supportable from S1-P1/S1-P5, but claims are immutable and revision is Phase 4.
-- **#2 correct.** S1-P1 says "PostgreSQL ... is a client-server database. It runs as a background process (daemon) ...".
+- **#2 correct.** S1-P1 describes PostgreSQL's client-server design and its long-running server process, which is what the claim says (page text withheld in
+  the public export).
 - **#3 arguable.** The quote is genuine and the claim matches the "Ideal for" table row, but that row is one article's
   recommendation. The claim states it in its own voice, which the drafter prompt forbids, and the verifier marked
   entity/attribution `ok`. A stricter reading would give `partially_supported`.

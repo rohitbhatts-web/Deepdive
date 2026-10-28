@@ -45,3 +45,29 @@ describe('judged report', () => {
     expect(screen.queryByText(/Related context/)).toBeNull()
   })
 })
+
+describe('a direct answer shown in another subquestion\'s section', () => {
+  const REFERENCED: Report = {
+    ...JUDGED,
+    sections: [
+      JUDGED.sections[0],
+      { position: 2, label: 'Section 2', subquestion_id: 2, subquestion_text: 'FIXTURE milestone subquestion', answered: true, context: [], open_requirements: [],
+        claims: [{ claim_id: 1, claim_version: 1, text: CLAIM_A.text, semantic_result_id: 2, role: 'direct_answer', requirement_texts: ['Publication date'], citations: cite,
+          cross_reference: { owner_label: 'Section 1', owner_subquestion_id: 1 } }] },
+    ],
+  }
+
+  it('shows the same verified claim with its owner named, and no element id appears twice', async () => {
+    stubFetch({ '/runs/7/report': REFERENCED, '/runs/7/claims': [CLAIM_A, CLAIM_B] })
+    const { container } = render(<ReportTab run={RUN} claimId={null} version={0} active={false} />)
+    expect(await screen.findByText(/Report 3: Claims with gaps/)).toBeInTheDocument()
+    expect(screen.queryByText('No direct answer was found for this subquestion')).toBeNull()
+    expect(screen.getByText('Same verified claim as in Section 1, where it was drafted')).toBeInTheDocument()
+    const buttons = screen.getAllByRole('button', { name: /The cache holds/ })
+    expect(buttons).toHaveLength(2) // the claim appears in both sections
+    expect(buttons.map((b) => b.textContent)).toEqual([CLAIM_A.text, CLAIM_A.text]) // with its exact text
+    const ids = Array.from(container.querySelectorAll('[id]')).map((e) => e.id)
+    expect(new Set(ids).size).toBe(ids.length)
+    expect(screen.getByRole('list', { name: 'Citations for claim 1 in Section 2' })).toBeInTheDocument()
+  })
+})

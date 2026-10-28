@@ -4,7 +4,7 @@ database with the verdict rows a real verifier would have produced (no model inv
 from backend import claims, correction, db
 from tests.seed import PARAS, Q0, Q2, seed_collected_run
 
-SINGLE_FILE = PARAS[0].split(". ")[1]  # "The database is a single file on disk."
+SINGLE_FILE = PARAS[0].split(". ")[1]  # "Each database is kept in one ordinary file."
 CONCURRENCY = "It can handle hundreds of concurrent clients, though results may vary."
 SENTINEL = "Test input sentinel: SQLite is written in C."
 BAD_QUOTE = "SQLite keeps all of its data inside one file on disk"  # does not occur in any stored passage

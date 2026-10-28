@@ -32,7 +32,7 @@ export interface StageRow { agent: string; label: string; calls: number; failed:
 
 const AGENT_LABEL: Record<string, string> = {
   planner: 'Plan', researcher: 'Search and read', relevance: 'Link sources', drafter: 'Draft claims', verifier: 'Verify claims',
-  coverage: 'Assess coverage', reviser: 'Revise claims', synthesizer: 'Write report',
+  coverage: 'Assess coverage', reviser: 'Revise claims', consistency: 'Compare claims', synthesizer: 'Write report',
 }
 const AGENT_ORDER = Object.keys(AGENT_LABEL)
 
@@ -96,7 +96,9 @@ export function outcomeSummary(run: RunSummary, report: Report | null, completio
   const failure = failureNotice(run, completion)
   if (failure) return { headline: `${failure.title}.`, detail: failure.detail, tone: 'bad' }
   if (!report) return { headline: run.status === 'created' ? 'Research has not started.' : 'This run has no report.', detail: run.stop_reason ?? 'No report was stored for it.', tone: 'neutral' }
-  const open = requirements.filter((r) => r.status !== 'addressed').length
+  const open = requirements.filter((r) => r.status !== 'addressed' && r.status !== 'not_assessed').length  // assessed as not (fully) answered
+  const unassessed = requirements.filter((r) => r.status === 'not_assessed').length  // never assessed: unknown, not unanswered
+  const notAssessed = unassessed ? ` ${unassessed} ${unassessed === 1 ? 'was' : 'were'} not assessed, so whether ${unassessed === 1 ? 'it is' : 'they are'} answered is unknown.` : ''
   const answered = new Set(report.sections.flatMap((s) => s.claims.map((c) => c.claim_id))).size
   if (report.outcome === 'insufficient_evidence') {
     return { headline: 'No claim could be verified and reported.', detail: 'This does not show that the answer does not exist, only that this run did not establish it from the pages it collected.', tone: 'gap' }
@@ -105,9 +107,12 @@ export function outcomeSummary(run: RunSummary, report: Report | null, completio
     return { headline: `${answered} verified claim${answered === 1 ? '' : 's'} answer${answered === 1 ? 's' : ''} the question.`, detail: 'Every requirement was assessed as addressed. That is a model assessment, not a guarantee.', tone: 'ok' }
   }
   if (stale > 0) {  // the report is a historical snapshot: say plainly when claims in it no longer count under the current rules
-    return { headline: `The report lists ${answered} claim${answered === 1 ? '' : 's'} as answers; ${stale} ${stale === 1 ? 'is' : 'are'} not currently report-eligible.`, detail: `${open} of ${requirements.length} requirement${requirements.length === 1 ? '' : 's'} ${open === 1 ? 'is' : 'are'} not fully answered. Claims marked Needs re-judge were verified under an older rubric.`, tone: 'gap' }
+    return { headline: `The report lists ${answered} claim${answered === 1 ? '' : 's'} as answers; ${stale} ${stale === 1 ? 'is' : 'are'} not currently report-eligible.`, detail: `${open} of ${requirements.length} requirement${requirements.length === 1 ? '' : 's'} ${open === 1 ? 'is' : 'are'} not fully answered.${notAssessed} Claims marked Needs re-judge were verified under an older rubric.`, tone: 'gap' }
   }
-  return { headline: `${answered} verified claim${answered === 1 ? '' : 's'} answer${answered === 1 ? 's' : ''} part of the question.`, detail: `${open} of ${requirements.length} requirement${requirements.length === 1 ? '' : 's'} ${open === 1 ? 'is' : 'are'} still not fully answered.`, tone: 'gap' }
+  if (requirements.length && unassessed === requirements.length) {
+    return { headline: `${answered} verified claim${answered === 1 ? ' is' : 's are'} listed; the requirements were not assessed.`, detail: `No coverage assessment was made, so whether the ${requirements.length} requirement${requirements.length === 1 ? ' is' : 's are'} answered is unknown. That does not show ${requirements.length === 1 ? 'it is' : 'they are'} unanswered.`, tone: 'gap' }
+  }
+  return { headline: `${answered} verified claim${answered === 1 ? '' : 's'} answer${answered === 1 ? 's' : ''} part of the question.`, detail: `${open} of ${requirements.length} requirement${requirements.length === 1 ? '' : 's'} ${open === 1 ? 'is' : 'are'} still not fully answered.${notAssessed}`, tone: 'gap' }
 }
 
 // ---------------------------------------------------------------- evidence map

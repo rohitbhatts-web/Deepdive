@@ -1,4 +1,4 @@
-"""The hosted recorded demo: one origin, read-only enforcement, the sanitized seed, persistence. No network, no model, no provider key."""
+"""The hosted recorded demo: one origin, read-only enforcement, the sanitized seed, the offline build. No network, no model, no provider key."""
 
 import hashlib
 import sqlite3
@@ -32,6 +32,7 @@ def demo(tmp_path, monkeypatch):
     (tmp_path / "secret.txt").write_text("outside the build", encoding="utf-8")
     s = Settings(_env_file=None, public_read_only=True, database_path=str(tmp_path / "vol" / "deepdive.db"), frontend_dist=str(dist),
                  demo_seed_path=str(ROOT / "demo" / "seed.sql.gz"), demo_info_path=str(ROOT / "demo" / "demo_info.json"), mesh_api_key="")
+    seed_mod.build_demo_db(s.database_path, ROOT / "demo" / "seed.sql.gz", ROOT / "demo" / "updates")  # offline, before the server starts, as the image does
     for mod in ("backend.api.runs", "backend.mesh_client"):
         monkeypatch.setattr(f"{mod}.get_settings", lambda s=s: s)
     app = create_public_app(s, create_app(s))
@@ -43,7 +44,7 @@ def demo(tmp_path, monkeypatch):
 def test_one_origin_serves_the_build_the_api_and_deep_links(demo):
     assert demo.get("/health").json() == {"status": "ok"}
     ready = demo.get("/ready")
-    assert ready.status_code == 200 and ready.json() == {"status": "ready", "runs": 3, "update_error": None}  # the seed plus the pending update package
+    assert ready.status_code == 200 and ready.json() == {"status": "ready", "runs": 3}  # the seed plus the update package, built offline
     index = demo.get("/")
     assert index.status_code == 200 and "text/html" in index.headers["content-type"] and "DeepDive" in index.text
     for deep in ("/runs/1/report", "/runs/1/evidence", "/runs/2", "/anything/else"):  # refresh on a deep link reaches the client router
@@ -131,28 +132,25 @@ def test_the_seed_publishes_only_cleared_sources_and_markers_stand_in_for_the_re
     conn.close()
 
 
-def test_the_database_persists_across_restarts_and_the_seed_never_overwrites_it(tmp_path):
-    target, seed = tmp_path / "vol" / "deepdive.db", ROOT / "demo" / "seed.sql.gz"
-    assert seed_mod.ensure_demo_db(target, seed) == "created"
+def test_the_build_is_current_checked_and_never_overwritten(tmp_path):
+    target, seed, updates = tmp_path / "vol" / "deepdive.db", ROOT / "demo" / "seed.sql.gz", ROOT / "demo" / "updates"
+    result = seed_mod.build_demo_db(target, seed, updates)
+    assert result["runs"] == 3 and result["schema_version"] == db.SCHEMA_VERSION
+    conn = sqlite3.connect(target)
+    assert conn.execute("PRAGMA user_version").fetchone()[0] == db.SCHEMA_VERSION and conn.execute("PRAGMA journal_mode").fetchone()[0] == "delete"
+    assert {"consistency_checks", "model_call_diagnostics", "report_answer_refs"} <= {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+    conn.close()
     first = sha(target)
-    assert seed_mod.ensure_demo_db(target, seed) == "exists" and sha(target) == first  # a restart leaves the volume's database alone
-    # an in-place change on the volume survives the next start
-    c = sqlite3.connect(target)
-    c.execute("CREATE TABLE marker (x)")
-    c.commit()
-    c.close()
-    changed = sha(target)
-    assert seed_mod.ensure_demo_db(target, seed) == "exists" and sha(target) == changed
-    assert seed_mod.ensure_demo_db(target, seed, reset=True) == "reset"
-    assert any(p.name.startswith("deepdive.db.replaced-") for p in target.parent.iterdir())  # the old file is kept, not deleted
-    assert sqlite3.connect(target).execute("PRAGMA user_version").fetchone()[0] == db.SCHEMA_VERSION
+    with pytest.raises(FileExistsError):
+        seed_mod.build_demo_db(target, seed, updates)
+    assert sha(target) == first and sorted(p.name for p in target.parent.iterdir()) == ["deepdive.db"]
 
 
 def test_backup_is_a_consistent_copy_and_never_overwrites(tmp_path):
     target = tmp_path / "deepdive.db"
-    seed_mod.ensure_demo_db(target, ROOT / "demo" / "seed.sql.gz")
+    seed_mod.build_demo_db(target, ROOT / "demo" / "seed.sql.gz", ROOT / "demo" / "updates")
     out = seed_mod.backup(target, tmp_path / "backups" / "copy.db")
-    assert sqlite3.connect(out).execute("SELECT COUNT(*) FROM runs").fetchone()[0] == 2  # the seed alone
+    assert sqlite3.connect(out).execute("SELECT COUNT(*) FROM runs").fetchone()[0] == 3
     with pytest.raises(FileExistsError):
         seed_mod.backup(target, out)
 

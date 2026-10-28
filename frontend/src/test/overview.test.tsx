@@ -22,7 +22,7 @@ const ev = (id: number, event_type: string, at = '2026-01-01T00:0' + id + ':00Z'
 const completion: Completion = { run_id: 7, complete_status: 'completed', stop_reason: 'corrective rounds exhausted (1)', corrective_rounds: 1, max_corrective_rounds: 2, coverage_round: 1, coverage: null, report_id: 3, report_outcome: 'claims_with_gaps', budget_used_of_limit: { model_requests: [9, 20] } }
 const research: ResearchStatus = {
   run_id: 7, status: 'collection_finished', stop_reason: null, updated_at: RUN.updated_at, subquestions_by_status: {}, counts: { searches: 3, sources: 3, passages: 40, page_fetch_attempts: 3 },
-  model_usage: { model_calls: 9, failed_calls: 0, prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 }, limits: { model_requests: 20, search_queries: 8, page_fetches: 12 },
+  model_usage: { model_calls: 9, failed_calls: 0, calls_with_usage: 9, prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 }, limits: { model_requests: 20, search_queries: 8, page_fetches: 12 },
 }
 
 describe('coverage and request counts', () => {
@@ -275,7 +275,7 @@ describe('Overview tab', () => {
   it('previews at most three answers and three gaps, with working links to the rest', async () => {
     const many = Array.from({ length: 5 }, (_, i) => ({ claim_id: i + 1, claim_version: 1, text: `FIXTURE answer ${i + 1}`, semantic_result_id: 2, citations: REPORT.sections[0].claims[0].citations }))
     const gaps = Array.from({ length: 5 }, (_, i) => ({ requirement_key: `Q1.R${i + 1}`, requirement_text: `FIXTURE gap ${i + 1}`, status: 'unresolved', gap: 'none stored' }))
-    stubFetch({ ...routes(), '/runs/7/report': { ...REPORT, sections: [{ ...REPORT.sections[0], claims: many }], unresolved_requirements: gaps } })
+    stubFetch({ ...routes(), '/runs/7/report': { ...REPORT, sections: [{ ...REPORT.sections[0], claims: many }], requirements: gaps, unresolved_requirements: gaps } })
     render(<Harness run={RUN} live={live} version={0} />)
     const answer = (await screen.findByRole('heading', { name: 'Research answer' })).closest('[class*="rounded-2xl"]') as HTMLElement
     expect(within(answer).getAllByRole('button', { name: /Inspect evidence for claim/ })).toHaveLength(3)

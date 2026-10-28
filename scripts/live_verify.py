@@ -193,7 +193,7 @@ def recheck() -> int:
         ("The guide's comparison table lists prototyping, mobile apps and local apps as the ideal uses for SQLite.", "S1-P5",
          "Ideal for" + chr(10) * 2 + "Prototyping, mobile, local apps",
          "test: attributed, atomic version of claim #3's source recommendation"),
-        ("The first stable release of SQLite came out in 2004.", "S1-P1", "Just drop the file and start querying.",
+        ("The first stable release of SQLite came out in 2004.", "S1-P1", "Just drop the file",  # a short genuine fragment: the page's text is not reproduced in the public tree
          "test: unrelated claim paired with a genuine but irrelevant quote"),
     ]
     base = build_services(mode="verify").settings

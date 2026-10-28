@@ -12,6 +12,7 @@ from backend import db
 from backend.agents.schemas import RelevanceAssessment
 from backend.budget import Budget
 from backend.config import Settings
+from backend.correction import _stem
 from backend.llm import LLM
 
 SYSTEM = """You are the Researcher in a web research pipeline, running a relevance check. For each candidate, decide \
@@ -29,7 +30,10 @@ STOPWORDS = frozenset(
 
 
 def content_words(text: str) -> set[str]:
-    return {w for w in re.findall(r"[a-z][a-z0-9\-]{3,}", text.lower()) if w not in STOPWORDS}
+    """Content-word STEMS (correction._stem: one inflection dropped, first 5 letters), so overlap counts treat "merging"/"merge" and "developers"/"developer"
+    as the same word. Without this a page that answers "when should a developer choose Git merge?" with "Merging is the safer choice ... other developers"
+    shared no word with its subquestion and was never offered to the drafter."""
+    return {_stem(w) for w in re.findall(r"[a-z][a-z0-9\-]{3,}", text.lower()) if w not in STOPWORDS}
 
 
 def shortlist(subquestion: dict, passages: list[dict], top: int, min_overlap: int) -> list[tuple[int, dict]]:

@@ -20,9 +20,15 @@ from typing import Any, TypedDict
 
 from langgraph.graph import END, START, StateGraph
 
-from backend import claims, correction, db
+from backend import budget_policy, claims, correction, db
+from backend.agents.consistency import ensure_check as ensure_consistency_check
 from backend.agents.coverage import assess as assess_coverage
-from backend.agents.drafter import run_drafter
+from backend.agents.drafter import (
+    STORED_MIN_OVERLAP,
+    passages_already_used,
+    run_drafter,
+    stored_candidates,
+)
 from backend.agents.obligations import ensure_obligations
 from backend.agents.planner import run_planner
 from backend.agents.relevance import associate_sources
@@ -30,14 +36,12 @@ from backend.agents.researcher import research_subquestion
 from backend.agents.reviser import revise_claim
 from backend.agents.synthesizer import plan_synthesis
 from backend.agents.verifier import verify_claim, verify_pending
-from backend.budget import Budget, BudgetExceeded
+from backend.budget import Budget, BudgetExceeded, ReserveReached
 from backend.llm import AgentOutputError, ModelCallError
 from backend.redact import redact
 from backend.report import ReportError, build_report
 from backend.search import SearchFatalError
 from backend.services import ResearchServices
-
-RESERVE = 2  # model requests never spent on corrections: one final coverage assessment and one synthesis
 
 
 class ResearchState(TypedDict, total=False):
@@ -47,12 +51,14 @@ class ResearchState(TypedDict, total=False):
     complete: bool  # continue into the correction loop and report after verification
     verify_first: bool  # complete mode only: the run has no claims yet, so draft and verify them first
     queue: list[int]  # subquestion IDs still to research
+    curtailed_queue: list[int]  # subquestions left unresearched because the requests left were held for later required work
     stop_reason: str | None  # collection: budget limit reached
     error: str | None  # collection: a node failed
     claim_ids: list[int]
     v_stop: str | None  # verification: budget limit reached
     v_error: str | None  # verification: a node failed
-    round: int  # corrective rounds completed
+    round: int  # corrective rounds completed IN THIS JOB
+    round_base: int  # coverage rounds already stored for the run by earlier jobs; this job's rounds are labelled base + round (rounds are unique per run)
     loop_end: str | None  # why the correction loop ended on its own criteria
     c_stop: str | None  # completion: a budget limit was reached
     c_error: str | None  # completion: a node failed
@@ -70,10 +76,36 @@ def build_graph(svc: ResearchServices, conn: sqlite3.Connection, budget: Budget)
     def model_left() -> int:
         return s.max_model_requests - budget.model_requests
 
+    notes: list[str] = []  # optional work this job left undone to keep the held capacity: reported with the result, never hidden
+
+    def hold(phase: str, state: ResearchState) -> None:
+        """Set the request hold for an optional phase (backend/budget_policy.py); the budget itself then refuses optional requests that would use it."""
+        n, why, seconds = budget_policy.hold_for(phase, conn, state["run_id"], complete=bool(state.get("complete")) or state.get("mode") == "complete",
+                                                 verify=bool(state.get("verify")))
+        if (n, why, seconds) != (budget.held, budget.held_for, budget.held_seconds):
+            budget.hold(n, why, seconds)
+            db.add_event(conn, state["run_id"], "budget_held", "graph", {"phase": phase, "held": n, "held_seconds": seconds, "for": why,
+                                                                       "model_requests": [budget.model_requests, s.max_model_requests],
+                                                                       "elapsed_seconds": [round(budget.elapsed(), 1), s.max_elapsed_seconds]})
+
+    def curtail(state: ResearchState, stage: str, what: str) -> str:
+        note = f"{stage}: {what}" + (f" ({budget.held} model requests held for {budget.held_for})" if budget.held else f" (only {model_left()} model request(s) left)")
+        notes.append(note)
+        db.add_event(conn, state["run_id"], "budget_curtailed", "graph", {"stage": stage, "what": what, "held": budget.held, "held_for": budget.held_for,
+                                                                         "model_requests": [budget.model_requests, s.max_model_requests]})
+        return note
+
+    def with_notes(reason: str | None) -> str | None:
+        if not notes:
+            return reason
+        partial = "partial result: " + "; ".join(notes)
+        return f"{reason}; {partial}" if reason else partial
+
     # ---- collection ----------------------------------------------------------------------------------------------
 
     def planner(state: ResearchState) -> ResearchState:
         run = db.get_run(conn, state["run_id"])
+        hold("collection", state)
         try:
             return {"queue": run_planner(conn, svc.llm, budget, s, run)}
         except BudgetExceeded as exc:
@@ -84,9 +116,13 @@ def build_graph(svc: ResearchServices, conn: sqlite3.Connection, budget: Budget)
     def researcher(state: ResearchState) -> ResearchState:
         run_id, (current, *rest) = state["run_id"], state["queue"]
         subquestion = db.get_subquestion(conn, current)
+        hold("collection", state)
         try:
             status, reason = research_subquestion(
                 conn, svc.llm, svc.search, svc.fetcher, budget, s, run_id, subquestion, queue_left=len(state["queue"]))
+        except ReserveReached:  # optional research ends here; drafting, verification and the final assessment still run on what was collected
+            curtail(state, "research", f"subquestion(s) {state['queue']} not (fully) researched")
+            return {"queue": [], "curtailed_queue": list(state["queue"])}
         except BudgetExceeded as exc:
             return {"stop_reason": exc.reason}  # `current` stays queued so finish marks it collection_incomplete
         except KNOWN_ERRORS as exc:
@@ -96,8 +132,13 @@ def build_graph(svc: ResearchServices, conn: sqlite3.Connection, budget: Budget)
         return {"queue": rest}
 
     def associate(state: ResearchState) -> ResearchState:
+        hold("collection", state)
         try:
             associate_sources(conn, svc.llm, budget, s, state["run_id"])
+        except ReserveReached as exc:  # optional: every source keeps its direct subquestion link
+            db.add_event(conn, state["run_id"], "association_skipped", "relevance", {"reason": exc.reason})
+            curtail(state, "relevance", "cross-subquestion association not done")
+            return {}
         except BudgetExceeded as exc:
             db.add_event(conn, state["run_id"], "association_skipped", "relevance", {"reason": exc.reason})
             return {"stop_reason": exc.reason}
@@ -119,7 +160,7 @@ def build_graph(svc: ResearchServices, conn: sqlite3.Connection, budget: Budget)
 
     def finish(state: ResearchState) -> ResearchState:
         run_id = state["run_id"]
-        unresolved = list(state.get("queue", []))
+        unresolved = list(state.get("queue", [])) + list(state.get("curtailed_queue", []))
         with db.tx(conn):
             if state.get("error") and unresolved:
                 db.set_subquestion_status(conn, unresolved[0], "failed")  # the subquestion being worked on
@@ -130,8 +171,8 @@ def build_graph(svc: ResearchServices, conn: sqlite3.Connection, budget: Budget)
                 status, reason = "failed", state["error"]
             elif state.get("stop_reason"):
                 status, reason = "stopped", state["stop_reason"]
-            else:
-                status, reason = "collection_finished", None
+            else:  # finished; when optional research was cut to keep capacity for verification and the final assessment, the reason says so
+                status, reason = "collection_finished", with_notes(None)
             db.set_run_status(conn, run_id, status, reason)
             db.add_event(conn, run_id, "research_finished", "graph", {
                 "status": status, "stop_reason": reason, "unresolved_subquestions": state.get("queue", []),
@@ -142,8 +183,16 @@ def build_graph(svc: ResearchServices, conn: sqlite3.Connection, budget: Budget)
     # ---- verification --------------------------------------------------------------------------------------------
 
     def draft(state: ResearchState) -> ResearchState:
+        hold("drafting", state)
+        cap = budget_policy.drafting_cap(budget, s)  # never draft more claims than can still be verified
+        if cap < 1:
+            if model_left() <= 0:  # the total limit itself is used up: that is the reason, not a hold
+                return {"v_stop": f"max_model_requests reached ({s.max_model_requests})"}
+            return {"v_stop": curtail(state, "drafting", "no claims drafted: none could then be verified")}
         try:
-            return {"claim_ids": run_drafter(conn, svc.llm, budget, s, state["run_id"])}
+            return {"claim_ids": run_drafter(conn, svc.llm, budget, s, state["run_id"], max_new=cap)}
+        except ReserveReached:
+            return {"v_stop": curtail(state, "drafting", "no claims drafted")}
         except BudgetExceeded as exc:
             return {"v_stop": exc.reason}
         except KNOWN_ERRORS as exc:
@@ -158,8 +207,12 @@ def build_graph(svc: ResearchServices, conn: sqlite3.Connection, budget: Budget)
         return {}
 
     def verify(state: ResearchState) -> ResearchState:
+        hold("verification", state)
         try:
             counts = verify_pending(conn, svc.llm, budget, s, state["run_id"], state.get("claim_ids", []))
+        except ReserveReached:  # the rest stay 'awaiting_verification' (never supported); the final assessment still runs
+            left = [cid for cid in state.get("claim_ids", []) if claims.latest_result(conn, cid, "semantic") is None]
+            return {"v_stop": curtail(state, "verification", f"claim(s) {left} left unverified")}
         except BudgetExceeded as exc:
             return {"v_stop": exc.reason}  # claims without a semantic result stay 'awaiting_verification'
         db.add_event(conn, state["run_id"], "claims_verified", "verifier", counts)
@@ -196,6 +249,7 @@ def build_graph(svc: ResearchServices, conn: sqlite3.Connection, budget: Budget)
         """Re-judge 'supported' verdicts made under an older verifier rubric: they are not trusted for reports."""
         run_id = state["run_id"]
         todo = [c for c in claims.active_claims(conn, run_id) if c["needs_rejudge"]]
+        hold("verification", state)
         for c in todo:
             with db.tx(conn):
                 tid = correction.add_task(conn, run_id, 0, "rejudge", claim_id=c["id"], subquestion_id=c["subquestion_id"],
@@ -203,6 +257,11 @@ def build_graph(svc: ResearchServices, conn: sqlite3.Connection, budget: Budget)
                                                 "previous_rubric": c["semantic"]["details"].get("rubric")})
             try:
                 result = verify_claim(conn, svc.llm, budget, s, c["id"], force=True)
+            except ReserveReached as exc:  # optional: the stale verdict stays untrusted (not report-eligible); the final assessment still runs
+                with db.tx(conn):
+                    correction.finish_task(conn, tid, "skipped", {"reason": exc.reason})
+                curtail(state, "re-judging", f"claim(s) {[x['id'] for x in todo[todo.index(c):]]} not re-judged")
+                return {}
             except BudgetExceeded as exc:
                 with db.tx(conn):
                     correction.finish_task(conn, tid, "skipped", {"reason": exc.reason})
@@ -215,11 +274,18 @@ def build_graph(svc: ResearchServices, conn: sqlite3.Connection, budget: Budget)
 
     def coverage(state: ResearchState) -> ResearchState:
         run_id, r = state["run_id"], state.get("round", 0)
+        base = state.get("round_base", 0)
+        # Coverage (with obligation derivation and any validation retry) may use the held capacity EXCEPT the consistency check's own request and time:
+        # a coverage retry must not take another required stage's allocation. Without at least two eligible claims there is no check to keep anything for.
+        check = len(claims.eligible_claims(conn, run_id)) >= 2
         try:
-            ensure_obligations(conn, svc.llm, budget, s, run_id)  # splits requirements by subject and dimension (once)
-            rows = assess_coverage(conn, svc.llm, budget, s, run_id, r)
-        except BudgetExceeded as exc:
-            return {"c_stop": exc.reason, "loop_end": None}
+            with budget.required(keep=budget_policy.CONSISTENCY_REQUESTS if check else 0,
+                                 keep_seconds=budget_policy.CONSISTENCY_REQUESTS * budget_policy.FINAL_CALL_SECONDS if check else 0.0,
+                                 keep_for="the consistency check"):
+                ensure_obligations(conn, svc.llm, budget, s, run_id)  # splits requirements by subject and dimension (once)
+                rows = assess_coverage(conn, svc.llm, budget, s, run_id, base + r)
+        except BudgetExceeded as exc:  # coverage could not finish within its allocation: no new assessment; the report says what is (not) assessed
+            return {"c_stop": f"coverage not completed: {exc.reason}", "loop_end": None}
         except KNOWN_ERRORS as exc:
             return {"c_error": f"coverage assessment failed: {exc}"}
         summary = correction.coverage_summary(rows)
@@ -231,7 +297,8 @@ def build_graph(svc: ResearchServices, conn: sqlite3.Connection, budget: Budget)
             end = f"corrective rounds exhausted ({s.max_correction_rounds})"
         elif r > 0 and sig == state.get("last_sig"):
             end = "no progress: the eligible claims and every requirement status are unchanged"
-        proposals = correction.propose_tasks(conn, run_id, rows, s, s.max_search_queries - budget.search_queries)
+        proposals = correction.propose_tasks(conn, run_id, rows, s, s.max_search_queries - budget.search_queries,
+                                             stored_probe=lambda sq_id: stored_candidates(conn, run_id, s, sq_id))
         actionable = [p for p in proposals if p["kind"] in correction.ACTIONABLE and not p.get("skip")]
         search_blocked = [p for p in proposals if p.get("skip") == "no search budget left"]
         if end is None and not actionable:
@@ -240,26 +307,34 @@ def build_graph(svc: ResearchServices, conn: sqlite3.Connection, budget: Budget)
                         f"{len(search_blocked)} unmet requirement(s) could not be researched")
             else:
                 end = "no actionable correction tasks"
-        if end is None and stop is None and model_left() < 1 + RESERVE:
-            stop = f"insufficient model budget for another round ({model_left()} requests left, {RESERVE} reserved)"
+        hold("corrections", state)
+        if end is None and stop is None and model_left() < 1 + budget.held:
+            stop = f"insufficient model budget for another round ({model_left()} requests left, {budget.held} held for {budget.held_for})"
         if end or stop:
             for p in proposals:  # nothing silently disappears: planned work that will not run is recorded as skipped
                 if p["kind"] in correction.ACTIONABLE and not p.get("skip"):
                     p["skip"] = end or stop
-        correction.persist_tasks(conn, run_id, r, proposals)
+        correction.persist_tasks(conn, run_id, base + r, proposals)
         db.add_event(conn, run_id, "coverage_routed", "coverage", {
-            "round": r, "summary": summary, "tasks": [{"kind": p["kind"], "claim_id": p.get("claim_id"),
-                                                       "requirement_key": p.get("requirement_key"), "skipped": p.get("skip")}
+            "round": base + r, "summary": summary, "tasks": [{"kind": p["kind"], "claim_id": p.get("claim_id"),
+                                                       "requirement_key": p.get("requirement_key"), "skipped": p.get("skip"),
+                                                       **({"route": p["spec"]["route"]["chosen"], "route_why": p["spec"]["route"]["why"]} if p["spec"].get("route") else {})}
                                                       for p in proposals],
+            "ask_priority": correction.ask_priority(conn, run_id, rows),
             "loop_end": end, "stop": stop})
         return {"last_sig": sig, "loop_end": end, "c_stop": stop}
 
     def correct(state: ResearchState) -> ResearchState:
         run_id, planned = state["run_id"], state.get("round", 0)
+        base = state.get("round_base", 0)
         k = planned + 1
-        tasks = correction.list_tasks(conn, run_id, planned_round=planned, status="planned")
+        tasks = correction.list_tasks(conn, run_id, planned_round=base + planned, status="planned")
         tasks.sort(key=lambda t: t["kind"] == "missing_evidence")  # repairs and re-checks before searches
-        db.add_event(conn, run_id, "correction_round_started", "correct", {"round": k, "tasks": [t["id"] for t in tasks]})
+        hold("corrections", state)
+        reserve = budget.held  # the final assessment after these corrections (coverage + consistency); the budget enforces it as well
+        eligible_before = sorted((c["id"], c["version"]) for c in claims.eligible_claims(conn, run_id))
+        hard = False  # True only for a real limit (total, time, tokens): then the job goes straight to the report
+        db.add_event(conn, run_id, "correction_round_started", "correct", {"round": base + k, "tasks": [t["id"] for t in tasks]})
         committed, new_claims, new_sources, touched, stop = 0, [], set(), set(), None  # committed = verifications still owed
         for t in tasks:
             if stop:
@@ -267,16 +342,18 @@ def build_graph(svc: ResearchServices, conn: sqlite3.Connection, budget: Budget)
                     correction.finish_task(conn, t["id"], "skipped", {"reason": stop})
                 continue
             # (requests spent now, verifications this task will owe later): a repair is revise + verify, a search is queries + selection
-            now, owed = {"claim_repair": (1, 1), "rejudge": (1, 0), "missing_evidence": (2, 0)}[t["kind"]]
-            if model_left() - committed < now + owed + RESERVE:
+            stored = t["kind"] == "missing_evidence" and (t["spec"].get("route") or {}).get("chosen") == "stored_evidence"
+            # a stored-evidence task is one drafting request now and at least one verification later; a search is queries + selection
+            now, owed = (1, 1) if stored else {"claim_repair": (1, 1), "rejudge": (1, 0), "missing_evidence": (2, 0)}[t["kind"]]
+            if model_left() - committed < now + owed + reserve:
                 with db.tx(conn):
                     correction.finish_task(conn, t["id"], "skipped", {"reason": "reserving model requests for coverage and the report"})
                 continue
             try:
                 if t["kind"] == "claim_repair":
-                    out = revise_claim(conn, svc.llm, budget, s, run_id, t["claim_id"], planned_round=planned, task_id=t["id"],
+                    out = revise_claim(conn, svc.llm, budget, s, run_id, t["claim_id"], planned_round=base + planned, task_id=t["id"],
                                        failure=t["spec"].get("failure", {}),
-                                       max_parts=max(0, model_left() - 1 - committed - RESERVE))
+                                       max_parts=max(0, model_left() - 1 - committed - reserve))
                     if out["action"] == "revised":
                         new_claims.append(out["claim_id"])
                         committed += 1
@@ -286,6 +363,23 @@ def build_graph(svc: ResearchServices, conn: sqlite3.Connection, budget: Budget)
                 elif t["kind"] == "rejudge":
                     res = verify_claim(conn, svc.llm, budget, s, t["claim_id"], force=True)
                     out = {"verdict": res["verdict"]}
+                elif stored:  # missing_evidence, route "stored_evidence": draft from relevant collected passages the drafter never saw (no search, no fetch)
+                    sq_id = t["subquestion_id"]
+                    allowed = min(budget.candidates_left(), model_left() - committed - 1 - reserve)
+                    if allowed < 1:
+                        out = {"action": "skipped", "route": "stored_evidence", "reason": ("candidate-claim budget exhausted" if budget.candidates_left() <= 0 else
+                                                                                           "not enough model requests to draft and verify while reserving finalization")}
+                    else:
+                        wanted = [x for x in correction.assessments(conn, run_id) if x["subquestion_id"] == sq_id and x["status"] != "addressed"]
+                        ids = run_drafter(conn, svc.llm, budget, s, run_id, only_subquestions={sq_id}, max_new=allowed,
+                                          provenance={"round": base + k, "origin": "stored_evidence", "candidate": True, "task_id": t["id"]},
+                                          exclude_passage_ids=passages_already_used(conn, run_id), min_overlap=STORED_MIN_OVERLAP,
+                                          focus={sq_id: [f"{x['requirement_text']} ({x['gap'] or x['status']})" for x in wanted]})
+                        budget.add_candidates(len(ids))
+                        new_claims += ids
+                        committed += len(ids)
+                        out = {"route": "stored_evidence", "claim_ids": ids, "offered_passage_ids": t["spec"]["route"]["passage_ids"],
+                               "candidate_claims_used_of_limit": [budget.candidate_claims, s.max_candidate_claims]}
                 else:  # missing_evidence: targeted research through the existing Researcher and ingestion service
                     before = {x["id"] for x in db.list_sources(conn, run_id)}
                     sq = db.get_subquestion(conn, t["subquestion_id"])
@@ -299,46 +393,60 @@ def build_graph(svc: ResearchServices, conn: sqlite3.Connection, budget: Budget)
                 with db.tx(conn):
                     correction.finish_task(conn, t["id"], "skipped" if out.get("action") == "skipped" else "done", out)
             except BudgetExceeded as exc:
-                stop = exc.reason
+                stop, hard = exc.reason, not isinstance(exc, ReserveReached)
                 with db.tx(conn):
                     correction.finish_task(conn, t["id"], "skipped", {"reason": exc.reason})
+                if not hard:
+                    curtail(state, "corrections", "remaining correction tasks skipped")
             except KNOWN_ERRORS as exc:
                 with db.tx(conn):
                     correction.finish_task(conn, t["id"], "failed", {"error": redact(str(exc), s)})
         if new_sources and not stop:
             # Corrective evidence may be drafted into bounded CANDIDATE claims. The cap is cumulative for the job and separate
             # from the report's size limit; every candidate still needs integrity and a semantic verdict before it can count.
-            allowed = min(budget.candidates_left(), model_left() - committed - 1 - RESERVE)
+            allowed = min(budget.candidates_left(), model_left() - committed - 1 - reserve)
             if allowed >= 1:
                 try:
                     ids = run_drafter(conn, svc.llm, budget, s, run_id, only_sources=new_sources, only_subquestions=touched,
                                       unmet=correction.unmet_obligations(conn, run_id),
-                                      max_new=allowed, provenance={"round": k, "origin": "targeted_research", "candidate": True})
+                                      max_new=allowed, provenance={"round": base + k, "origin": "targeted_research", "candidate": True})
                     budget.add_candidates(len(ids))
                     new_claims += ids
                     committed += len(ids)
                     db.add_event(conn, run_id, "candidates_drafted", "correct", {
-                        "round": k, "claim_ids": ids, "from_source_ids": sorted(new_sources),
+                        "round": base + k, "claim_ids": ids, "from_source_ids": sorted(new_sources),
                         "candidate_claims_used_of_limit": [budget.candidate_claims, s.max_candidate_claims]})
                 except BudgetExceeded as exc:
-                    stop = exc.reason
+                    stop, hard = exc.reason, not isinstance(exc, ReserveReached)
+                    if not hard:
+                        curtail(state, "corrections", "candidate claims not drafted")
                 except KNOWN_ERRORS as exc:
-                    db.add_event(conn, run_id, "drafting_failed", "correct", {"round": k, "error": redact(str(exc), s)})
+                    db.add_event(conn, run_id, "drafting_failed", "correct", {"round": base + k, "error": redact(str(exc), s)})
             else:
                 db.add_event(conn, run_id, "drafting_skipped", "correct", {
-                    "round": k, "new_source_ids": sorted(new_sources),
+                    "round": base + k, "new_source_ids": sorted(new_sources),
                     "candidate_claims_used_of_limit": [budget.candidate_claims, s.max_candidate_claims],
-                    "model_requests_left": model_left(), "reserved": RESERVE,
+                    "model_requests_left": model_left(), "reserved": reserve,
                     "reason": ("candidate-claim budget exhausted" if budget.candidates_left() <= 0 else
                                "not enough model requests to draft and verify candidates while reserving finalization")})
         db.add_event(conn, run_id, "correction_round_finished", "correct", {
-            "round": k, "new_claim_ids": new_claims, "new_source_ids": sorted(new_sources), "stop": stop})
-        return {"round": k, "new_claim_ids": new_claims, **({"c_stop": stop} if stop else {})}
+            "round": base + k, "new_claim_ids": new_claims, "new_source_ids": sorted(new_sources), "stop": stop})
+        unchanged = sorted((c["id"], c["version"]) for c in claims.eligible_claims(conn, run_id)) == eligible_before
+        if not (stop and hard) and unchanged and not new_claims:
+            # The claims coverage judges did not change and none await verification, so another assessment would only repeat the last one (the retry run of
+            # 27 Oct 2026 spent a request that way): the latest assessment still describes the current claims, and the loop ends.
+            return {"round": k, "new_claim_ids": [], "loop_end": "no progress: this correction round changed no claim, so another assessment would repeat the last one; it stands"}
+        return {"round": k, "new_claim_ids": new_claims, **({"c_stop": stop} if stop and hard else {})}
 
     def reverify(state: ResearchState) -> ResearchState:
         """New claim versions and newly drafted claims go through integrity and the semantic verifier from scratch."""
+        hold("corrections", state)
         try:
             counts = verify_pending(conn, svc.llm, budget, s, state["run_id"], state.get("new_claim_ids", []))
+        except ReserveReached:  # unverified new claims stay ineligible; the final coverage assessment still runs
+            left = [cid for cid in state.get("new_claim_ids", []) if claims.latest_result(conn, cid, "semantic") is None]
+            curtail(state, "re-verification", f"new claim(s) {left} left unverified")
+            return {}
         except BudgetExceeded as exc:
             return {"c_stop": exc.reason}
         db.add_event(conn, state["run_id"], "claims_reverified", "verifier", counts)
@@ -346,23 +454,30 @@ def build_graph(svc: ResearchServices, conn: sqlite3.Connection, budget: Budget)
 
     def report(state: ResearchState) -> ResearchState:
         run_id, stop = state["run_id"], state.get("c_stop")
+        hold("report", state)  # nothing is held any more: the consistency check, then the optional synthesis, use what is left
         plan, model, call_id, reason = None, None, None, None
+        flagged: list[dict] = []
         if not claims.eligible_claims(conn, run_id):
             reason = "no eligible claims: no synthesis call needed"
-        elif stop:
-            reason = f"synthesizer not called: {stop}"
         else:
+            # Order after the final coverage: the cross-claim consistency check (one request at most, never fatal), then the synthesizer. The check goes first because
+            # it bears on honesty; the synthesizer only orders claims and has a deterministic fallback, so with a single request left the check gets it.
+            with budget.required():
+                checked = ensure_consistency_check(conn, svc.llm, budget, s, run_id)
+            flagged = [f for f in (checked or {}).get("findings", []) if f["kind"] == "conflict"]
+            # Synthesis is optional (ordering only). It is attempted whenever a request is left, even after the loop stopped on its budget check; the budget
+            # refuses it when nothing is left, and the deterministic ordering is used instead.
             try:
-                plan, call_id = plan_synthesis(conn, svc.llm, budget, s, run_id)
+                plan, call_id = plan_synthesis(conn, svc.llm, budget, s, run_id, conflicts=flagged)
                 model = s.effective_synthesizer_model
             except BudgetExceeded as exc:
-                stop, reason = exc.reason, f"synthesizer not called: {exc.reason}"
+                stop, reason = stop or exc.reason, f"synthesizer not called: {exc.reason}"
             except KNOWN_ERRORS as exc:
                 reason = f"synthesizer failed ({redact(str(exc), s)}); deterministic ordering used"
         try:
             info = build_report(conn, run_id, plan=plan, ordering_reason=reason, model=model, model_call_id=call_id,
-                                stop_reason=stop or state.get("loop_end"), corrective_rounds=state.get("round", 0),
-                                max_claims=s.max_report_claims)
+                                stop_reason=with_notes(state.get("c_error") or stop or state.get("loop_end")), corrective_rounds=state.get("round", 0),
+                                max_claims=s.max_report_claims, settings=s)
         except (ReportError, sqlite3.IntegrityError) as exc:
             return {"c_error": f"report assembly failed: {exc}", "c_stop": stop}
         return {"report_id": info["report_id"], "c_stop": stop}
@@ -373,9 +488,9 @@ def build_graph(svc: ResearchServices, conn: sqlite3.Connection, budget: Budget)
         if error:
             status, reason = "failed", error
         elif state.get("c_stop"):
-            status, reason = "stopped", state["c_stop"]
+            status, reason = "stopped", with_notes(state["c_stop"])
         else:
-            status, reason = "completed", state.get("loop_end")
+            status, reason = "completed", with_notes(state.get("loop_end"))
         with db.tx(conn):
             db.set_complete_status(conn, run_id, status, reason)
             db.add_event(conn, run_id, "completion_finished", "graph", {
@@ -418,12 +533,11 @@ def build_graph(svc: ResearchServices, conn: sqlite3.Connection, budget: Budget)
         return "report" if state.get("c_stop") else "coverage"
 
     def after_coverage(state: ResearchState) -> str:
-        if state.get("c_error"):
-            return "finish_complete"
-        return "report" if state.get("c_stop") or state.get("loop_end") else "correct"
+        # A coverage failure still gets a report (the latest assessment, or "not assessed") and the consistency check; the job is then marked failed.
+        return "report" if state.get("c_error") or state.get("c_stop") or state.get("loop_end") else "correct"
 
     def after_correct(state: ResearchState) -> str:
-        return "report" if state.get("c_stop") else "reverify"
+        return "report" if state.get("c_stop") or state.get("loop_end") else "reverify"
 
     def after_reverify(state: ResearchState) -> str:
         return "report" if state.get("c_stop") else "coverage"
@@ -504,8 +618,8 @@ def execute_verification(run_id: int, svc: ResearchServices) -> None:
     _run_job(run_id, svc, {"mode": "verify"}, collecting=False)
 
 
-def execute_completion(run_id: int, svc: ResearchServices, verify_first: bool = False) -> None:
+def execute_completion(run_id: int, svc: ResearchServices, verify_first: bool = False, round_base: int = 0) -> None:
     """Complete an already collected run: (draft and verify if there are no claims yet,) re-judge stale verdicts, run the
     correction loop, and persist the report (complete_status already claimed as 'completing')."""
-    _run_job(run_id, svc, {"mode": "complete", "complete": True, "verify_first": verify_first, "round": 0},
+    _run_job(run_id, svc, {"mode": "complete", "complete": True, "verify_first": verify_first, "round": 0, "round_base": round_base},
              collecting=False)

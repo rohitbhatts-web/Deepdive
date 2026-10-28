@@ -1,7 +1,7 @@
 """ONE drafting request on a COPY of a failed run's stored evidence (no search, no fetch, no verification, no retry).
 
 It uses the production path exactly: `build_services` (real Mesh client and catalog check), `run_drafter` (the production passage selection, prompt, structured
-output and 1,500-token limit) and the production 60 s client timeout. The only extra limits are a job budget of ONE model request (so a second attempt after an
+output and 1,500-token limit) and the production client timeout (`MESH_TIMEOUT`, 90 s by default). The only extra limits are a job budget of ONE model request (so a second attempt after an
 invalid reply cannot be sent) and 3,000 output tokens. Latency is measured here and so is recorded even when the call fails; usage the provider did not return stays
 unknown. Never prints credentials.
 

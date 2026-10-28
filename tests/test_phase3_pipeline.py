@@ -40,7 +40,7 @@ def six_claims(r):
         claim(r["sq1"], Q0, (r["p"](0), Q0)),
         claim(r["sq1"], "SQLite is embedded in the application process and supports hundreds of concurrent writers.", (r["p"](0), Q0)),
         claim(r["sq1"], "Version 3.45 was released in January 2023.", (r["p"](1), Q1)),
-        claim(r["sq1"], "SQLite stores data in a single file.", ("S9-P9", "The database is a single file on disk.")),
+        claim(r["sq1"], "SQLite stores data in a single file.", ("S9-P9", "Each database is kept in one ordinary file.")),
         claim(r["sq1"], "Most deployments will use cloud storage by 2030.", (r["p"](1), FORECAST)),
         claim(r["sq2"], Q2, (r["p"](2), Q2)),
         claim(r["sq2"], "Postgres was created in 1986 by one person.", (r["p"](2), Q2)),
@@ -171,14 +171,15 @@ def test_unparseable_verifier_output_after_one_retry_is_an_error(client, verify_
     assert [c["ok"] for c in client.get(f"/runs/{r['run']}/model-calls").json()] == [True, False, False, True]
 
 
-def test_retries_count_toward_the_request_cap_and_budget_stop_leaves_claims_unjudged(client, verify_env):
-    # cap 3 = drafter (1) + claim 1 invalid-then-valid (2); claim 2 would need a 4th request
+def test_retries_count_toward_the_request_cap_and_drafting_is_capped_to_what_can_be_verified(client, verify_env):
+    # cap 3: drafting (1) leaves 2 requests, enough to verify ONE claim with one validation retry of slack, so only one claim is drafted
+    # (before the budget policy two were drafted and the second was left unverified). Claim 1: invalid reply, then valid: 2 requests.
     r, mesh, by_text = pair_run(client, verify_env, ["bad", verdict("supported", used=["S1-P0"])], max_model_requests=3)
-    assert by_text[Q0]["status"] == "supported"
-    assert (by_text[Q2]["status"], by_text[Q2]["semantic"]) == ("awaiting_verification", None)
+    assert by_text[Q0]["status"] == "supported" and Q2 not in by_text  # never drafted, so never left unverified
     v = client.get(f"/runs/{r['run']}/verification").json()
-    assert (v["verify_status"], v["verify_stop_reason"]) == ("stopped", "max_model_requests reached (3)")
-    assert len(mesh.calls) == 3
+    assert v["verify_status"] == "completed" and len(mesh.calls) == 3
+    drafted = next(e for e in client.get(f"/runs/{r['run']}/events").json() if e["event_type"] == "claims_drafted")
+    assert drafted["payload"]["claim_ids"] == [by_text[Q0]["id"]]
 
 
 def test_drafter_budget_exhaustion_stops_before_any_claim_exists(client, verify_env):
@@ -400,7 +401,7 @@ def test_verification_mode_cannot_search_or_fetch(client, verify_env):
 
 
 def test_collect_then_verify_runs_both_stages_in_one_graph(client, research, web):
-    web.html(A, "<html><head><title>T</title></head><body><p>" + Q0 + " The database is a single file on disk.</p></body></html>")
+    web.html(A, "<html><head><title>T</title></head><body><p>" + Q0 + " Each database is kept in one ordinary file.</p></body></html>")
     mesh = FakeMesh(
         planner=plan((SQ1_Q, ["deployment model"])), queries=queries("sqlite deployment"), select=select(A),
         draft=lambda r=None: None, verify=None)

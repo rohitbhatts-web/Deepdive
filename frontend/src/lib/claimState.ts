@@ -50,6 +50,12 @@ export const REQUIREMENT_STATUS: Record<string, { label: string; tone: Tone }> =
   addressed: { label: 'Addressed', tone: 'ok' },
   partially_addressed: { label: 'Partially addressed', tone: 'gap' },
   unresolved: { label: 'Unresolved', tone: 'gap' },
+  not_assessed: { label: 'Not assessed', tone: 'neutral' },
+}
+
+/** Requirements assessed as not (fully) answered, kept apart from requirements that were never assessed: an absent assessment is not an unanswered one. */
+export function requirementBuckets<T extends { status?: string }>(requirements: T[]): { unanswered: T[]; unassessed: T[] } {
+  return { unanswered: requirements.filter((r) => r.status !== 'addressed' && r.status !== 'not_assessed'), unassessed: requirements.filter((r) => r.status === 'not_assessed') }
 }
 
 export const REPORT_OUTCOME: Record<string, { label: string; tone: Tone; text: string }> = {

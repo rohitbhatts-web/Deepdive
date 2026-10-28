@@ -12,8 +12,9 @@ A requirement that is not 'addressed' becomes a targeted missing-evidence search
 import json
 import re
 import sqlite3
+from collections.abc import Callable
 
-from backend import claims, db, temporal
+from backend import asks, claims, db, temporal
 from backend.config import Settings
 
 TASK_KINDS = ("rejudge", "claim_repair", "missing_evidence", "claim_exclusion")
@@ -195,26 +196,85 @@ def aggregate(items: list[dict]) -> dict:
                        "status": i["status"], "gap": i["gap"]} for i in unmet]}
 
 
+_INFLECTIONS = ("ing", "ed", "es", "s", "e")
+
+
 def _stem(word: str) -> str:
+    """First 5 letters after dropping one common inflection ('merging', 'merged' and 'merge' share a stem); a word of 4 or fewer letters is left alone."""
+    for suffix in _INFLECTIONS:
+        if word.endswith(suffix) and len(word) - len(suffix) >= 4:
+            word = word[:-len(suffix)]
+            break
     return word[:5]
 
 
 _GLUE = frozenset({"the", "and", "for", "are", "was", "were", "with", "from", "into", "over", "per", "via", "its", "their", "this", "that", "these", "those"})
 
 
-def mentions(subject: str, text: str) -> bool:
+def shared_subject_stems(subjects: list[str]) -> set[str]:
+    """Stems of the identifying words that EVERY distinct subject of a run contains (a run-wide qualifier such as the product all of them are about).
+    Such a word cannot tell one subject from another, so a claim that names the subject without repeating it is not penalised for the omission.
+    Empty unless there are at least two distinct subjects, and empty when the shared words are themselves the whole of some subject (then they DO identify it)."""
+    distinct = {s.strip().lower() for s in subjects if s.strip()}
+    if len(distinct) < 2:
+        return set()
+    per_subject = [{_stem(w) for w in _subject_words(s)} for s in distinct]
+    shared = set.intersection(*per_subject)
+    return set() if any(words <= shared for words in per_subject) else shared
+
+
+def _subject_words(subject: str) -> list[str]:
+    tokens = re.findall(r"[a-z0-9]+", subject.lower())
+    return [t for t in tokens if not any(ch.isdigit() for ch in t) and len(t) >= 3 and t not in _GLUE and t not in temporal.VERSION_QUALIFIERS]
+
+
+def mentions(subject: str, text: str, *, ignore_stems: frozenset[str] | set[str] = frozenset()) -> bool:
     """Lexical backstop, not a semantic test: does `text` talk about the named subject at all?
 
     Every IDENTIFYING word of the subject (3+ letters) must share a 5-letter stem with some word of the text, so 'Postgres' matches 'PostgreSQL'. Two kinds of
     token are handled apart so the check neither rejects a descriptive subject nor confuses two numbered ones: glue words and version/currency qualifiers
     ("the", "current", "revision", "original": which version, not what) are not required to appear; any token containing a digit ("2", "3.45", "9113") is
-    an identifier and must appear EXACTLY (a bare number used to be dropped, so 'X 3' and 'X 2' were not told apart)."""
+    an identifier and must appear EXACTLY (a bare number used to be dropped, so 'X 3' and 'X 2' were not told apart).
+    `ignore_stems` (see shared_subject_stems) are not required, but only while at least one other identifying word remains to be checked."""
     tokens = re.findall(r"[a-z0-9]+", subject.lower())
     identifiers = [t for t in tokens if any(ch.isdigit() for ch in t)]
-    words = [t for t in tokens if t not in identifiers and len(t) >= 3 and t not in _GLUE and t not in temporal.VERSION_QUALIFIERS]
+    words = _subject_words(subject)
+    kept = [w for w in words if _stem(w) not in ignore_stems]
+    if kept:  # never leaves the subject with only an identifier (or nothing) to check
+        words = kept
     text_tokens = re.findall(r"[a-z0-9]+", text.lower())
     stems = {_stem(w) for w in text_tokens}
     return bool(words or identifiers) and all(_stem(w) in stems for w in words) and all(i in set(text_tokens) for i in identifiers)
+
+
+_GENERIC_DIMENSION_WORDS = frozenset({"when", "needed", "need", "needs", "scenarios", "scenario", "cases", "case", "using", "used", "uses", "with", "about", "after", "before",
+                                      "other", "such", "than", "that", "then", "them", "they", "what", "which", "while", "would", "could", "should"})
+MIN_IDENTIFYING_WORDS = 3  # a dimension that names fewer words than this is too abstract for a word check ("mutability", "use cases")
+
+
+def _identifying_stems(text: str) -> dict[str, str]:
+    """{5-letter stem: word} of the words (4+ letters, not glue, version qualifiers or generic) that identify what a dimension asks about."""
+    out: dict[str, str] = {}
+    for w in re.findall(r"[a-z]+", text.lower()):
+        if len(w) >= 4 and w not in _GLUE and w not in temporal.VERSION_QUALIFIERS and w not in _GENERIC_DIMENSION_WORDS:
+            out.setdefault(_stem(w), w)
+    return out
+
+
+def claim_carries_dimension(dimension: str, claim_text: str) -> tuple[bool, list[str]]:
+    """Narrow, deterministic backstop for a direct-answer credit: the CLAIM'S OWN TEXT must contain at least one of the words that identify the dimension.
+
+    Only applied to a dimension that names MIN_IDENTIFYING_WORDS or more such words, and only when NONE of them appears in the claim (an abstract dimension, or a
+    paraphrase such as 'modify' for 'change', cannot be judged by words, so the check stays out of its way). It catches the observed failure: a claim about
+    immutability credited with 'use as dictionary keys and for returning multiple values', wording that existed only in the claim's evidence. Returns (ok, the
+    dimension words the claim lacks)."""
+    wanted = _identifying_stems(dimension)
+    if len(wanted) < MIN_IDENTIFYING_WORDS:
+        return True, []
+    have = {_stem(w) for w in re.findall(r"[a-z]+", claim_text.lower())}
+    if set(wanted) & have:
+        return True, []
+    return False, sorted(wanted.values())
 
 
 # --- tasks ---------------------------------------------------------------------------------------------------------
@@ -271,9 +331,32 @@ def failure_reasons(claim: dict) -> dict:
     return out
 
 
+def ask_priority(conn: sqlite3.Connection, run_id: int, rows: list[dict]) -> dict:
+    """Which subquestions serve an explicit ask that no covering subquestion has answered yet, from the provenance recorded at planning time.
+
+    Coarse by design: a requirement is not tied to an ask, only its subquestion is, and an ask counts as met as soon as one subquestion that covers it has an addressed
+    requirement. A run planned before provenance was recorded has `recorded: False`: priority is then UNKNOWN (never guessed from keywords) and the original
+    order is kept. Returns {"recorded", "unmet_asks": [ask labels], "priority": {subquestion_id: 0 (serves an unmet ask) | 1}, "note"}."""
+    prov = asks.provenance(conn, run_id)
+    if not prov["recorded"]:
+        return {"recorded": False, "source": None, "unmet_asks": None, "priority": {}, "note": "this run did not record which subquestion covers which ask, so unmet asks cannot be told from background; the original order is kept"}
+    statuses: dict[int, list[str]] = {}
+    for r in rows:
+        statuses.setdefault(r["subquestion_id"], []).append(r["status"])
+    unmet = asks.unmet_asks(prov, statuses) or []
+    serves = {sq: set(a) & set(unmet) for sq, a in prov["covers"].items()}
+    return {"recorded": True, "source": prov.get("source", "planner"), "unmet_asks": [prov["asks"][i]["label"] for i in unmet],
+            "priority": {sq: 0 if s else 1 for sq, s in serves.items()},
+            "note": "subquestions that serve an ask nobody has answered come first; a requirement is tied to its subquestion, not to a single ask"}
+
+
 def propose_tasks(conn: sqlite3.Connection, run_id: int, rows: list[dict], settings: Settings,
-                  searches_left: int) -> list[dict]:
-    """Pure routing: the tasks implied by the current state. Nothing is written."""
+                  searches_left: int, stored_probe: Callable[[int], dict] | None = None) -> list[dict]:
+    """Pure routing: the tasks implied by the current state. Nothing is written.
+
+    An unmet requirement becomes a `missing_evidence` task with one of two routes, recorded in its spec with the reason: `stored_evidence` (draft from relevant passages
+    of already collected sources that were never offered to the drafter or cited, found by `stored_probe`; costs model requests but no search) when such passages exist
+    and this exact evidence was not tried before, otherwise `search`. Tasks of subquestions that serve an unmet explicit ask come first (see `ask_priority`)."""
     proposals: list[dict] = []
     for c in claims.active_claims(conn, run_id):
         if claims.is_report_eligible(c) or c["needs_rejudge"]:
@@ -296,22 +379,50 @@ def propose_tasks(conn: sqlite3.Connection, run_id: int, rows: list[dict], setti
             kind = "claim_exclusion" if errors >= 2 else "rejudge"
             proposals.append({"kind": kind, "claim_id": c["id"], "subquestion_id": c["subquestion_id"],
                               "spec": {"reason": "verification error" + (" repeated" if errors >= 2 else ""), "failure": reasons}})
-    # only searches that really ran count as "already searched"; a task that was skipped was never tried
-    tried = {(t["requirement_key"], _norm(t["spec"].get("gap", "")))
-             for t in list_tasks(conn, run_id, kind="missing_evidence") if t["status"] in ("done", "failed")}
-    for a in rows:
-        if a["status"] == "addressed":
-            continue
+    # only attempts that really ran count as "already tried"; a task that was skipped was never tried. Searches and stored-evidence drafting are tracked apart.
+    done = [t for t in list_tasks(conn, run_id, kind="missing_evidence") if t["status"] in ("done", "failed")]
+    tried = {(t["requirement_key"], _norm(t["spec"].get("gap", ""))) for t in done if t["spec"].get("route", {}).get("chosen") != "stored_evidence"}
+    tried_stored = {t["spec"]["route"].get("fingerprint") for t in done if t["spec"].get("route", {}).get("chosen") == "stored_evidence"}
+    priority = ask_priority(conn, run_id, rows)
+    unmet_rows = [a for a in rows if a["status"] != "addressed"]
+    unmet_rows.sort(key=lambda a: priority["priority"].get(a["subquestion_id"], 0))  # stable: unrecorded provenance keeps requirement order
+    probes: dict[int, dict] = {}
+    stored_for: dict[int, str] = {}  # subquestion id -> the requirement key whose task carries the stored-evidence drafting for it
+    for a in unmet_rows:
         spec = {"requirement_text": a["requirement_text"], "gap": a["gap"], "missing_kind": a["missing_kind"],
-                "status": a["status"]}
-        proposals.append({"kind": "missing_evidence", "requirement_key": a["requirement_key"],
-                          "subquestion_id": a["subquestion_id"], "spec": spec,
+                "status": a["status"], "priority": {"serves_unmet_ask": priority["priority"].get(a["subquestion_id"]) == 0 if priority["recorded"] else None,
+                                                    "ask_provenance_recorded": priority["recorded"], "ask_provenance_source": priority.get("source")}}
+        sq_id = a["subquestion_id"]
+        probe = probes.setdefault(sq_id, stored_probe(sq_id) if stored_probe else {"passage_ids": [], "fingerprint": None})
+        if sq_id in stored_for:
+            proposals.append({"kind": "missing_evidence", "requirement_key": a["requirement_key"], "subquestion_id": sq_id, "spec": spec,
+                              "skip": f"handled together with {stored_for[sq_id]}: one stored-evidence drafting call serves all unmet requirements of this subquestion"})
+            continue
+        if probe["passage_ids"] and probe["fingerprint"] not in tried_stored:
+            spec["route"] = {"chosen": "stored_evidence", "fingerprint": probe["fingerprint"], "passage_ids": probe["passage_ids"],
+                             "why": (f"{len(probe['passage_ids'])} relevant passage(s) of already collected sources were never offered to the drafter or cited by a claim; "
+                                     "drafting from them needs no search"),
+                             "serves_requirements": [x["requirement_key"] for x in unmet_rows if x["subquestion_id"] == sq_id]}
+            stored_for[sq_id] = a["requirement_key"]
+            proposals.append({"kind": "missing_evidence", "requirement_key": a["requirement_key"], "subquestion_id": sq_id, "spec": spec, "route": "stored_evidence"})
+            continue
+        why = ("stored-evidence drafting was already tried on this same evidence" if probe["passage_ids"] and probe["fingerprint"] in tried_stored
+               else "no relevant unused passage in the already collected sources")
+        spec["route"] = {"chosen": "search", "why": why}
+        proposals.append({"kind": "missing_evidence", "requirement_key": a["requirement_key"], "subquestion_id": sq_id, "spec": spec, "route": "search",
                           "repeat": (a["requirement_key"], _norm(a["gap"])) in tried})
     # bounded: repairs and rejudges first, then search tasks while searches remain; exclusions are free
     out, searches = [], searches_left
     actionable = 0
     for p in proposals:
-        if p["kind"] == "missing_evidence":
+        if p["kind"] == "missing_evidence" and p.get("skip"):
+            pass  # already decided above (served by another task of the same subquestion)
+        elif p["kind"] == "missing_evidence" and p.get("route") == "stored_evidence":
+            if actionable >= settings.max_tasks_per_round:
+                p["skip"] = f"more than {settings.max_tasks_per_round} tasks in one round"
+            else:
+                actionable += 1  # no search is spent: it draws on the shared model budget in the correction round
+        elif p["kind"] == "missing_evidence":
             if p.get("repeat"):
                 p["skip"] = "same requirement and gap were already searched in an earlier round (no new information)"
             elif searches <= 0:

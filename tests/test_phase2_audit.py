@@ -38,7 +38,7 @@ def test_mesh_client_has_no_hidden_retries_and_a_bounded_timeout(monkeypatch):
         from backend.mesh_client import get_mesh_client
 
         client = get_mesh_client()
-        assert client.max_retries == 0 and client.timeout == 60.0
+        assert client.max_retries == 0 and client.timeout == 90.0
         assert str(client.base_url).startswith("https://api.meshapi.ai/v1")
     finally:
         config.get_settings.cache_clear()

@@ -3,11 +3,12 @@ import { useEffect, useRef, useState } from 'react'
 import type { Claim, Report, RunEvent, RunSummary } from '@/api/types'
 import { Button } from '@/components/ui/button'
 import { useResource } from '@/hooks/useApi'
-import { claimState, REPORT_OUTCOME, REQUIREMENT_STATUS } from '@/lib/claimState'
+import { claimState, REPORT_OUTCOME, REQUIREMENT_STATUS, requirementBuckets } from '@/lib/claimState'
 import { collectionContext, emptyReportContext } from '@/lib/collection'
 import { hrefFor } from '@/lib/route'
 import { cn } from '@/lib/utils'
 import { Empty, ErrorBox, Loading, Notice, Panel, Pill, SectionHeading, when } from './bits'
+import { ConflictPills, ConsistencyNotice } from './ConsistencyNotice'
 import { ClaimPill, Inspector } from './Inspector'
 
 function download(name: string, text: string) {
@@ -38,7 +39,12 @@ export function ReportTab({ run, claimId, version, active, events = [] }: { run:
     )
   }
   const r = report.data
-  const outcome = REPORT_OUTCOME[r.outcome] ?? { label: r.outcome, tone: 'neutral' as const, text: '' }
+  const { unanswered, unassessed } = requirementBuckets(r.requirements)
+  const noAssessment = unassessed.length > 0 && unanswered.length === 0 && !r.requirements.some((q) => q.status === 'addressed')
+  const known = REPORT_OUTCOME[r.outcome] ?? { label: r.outcome, tone: 'neutral' as const, text: '' }
+  const outcome = noAssessment && r.outcome === 'claims_with_gaps'
+    ? { ...known, label: 'Requirements not assessed', text: 'Verified claims are listed below. No coverage assessment was made, so the requirements were not assessed; that does not show they are unanswered.' }
+    : known
   const current = new Map((claims.data ?? []).map((c) => [c.id, c]))
   const open = (id: number, p: string | null) => { setPassage(p); window.location.hash = hrefFor(run.id, 'report', id).slice(1) }
   const reported = r.sections.reduce((n, s) => n + s.claims.length, 0)
@@ -49,6 +55,7 @@ export function ReportTab({ run, claimId, version, active, events = [] }: { run:
         <Notice tone={outcome.tone === 'ok' ? 'ok' : 'gap'} title={`Report ${r.id}: ${outcome.label}`}>
           {outcome.text} Coverage is a model assessment, not a guarantee of truth.
         </Notice>
+        <ConsistencyNotice consistency={r.consistency} />
         {r.outcome === 'insufficient_evidence' && events.length > 0 && (
           <Notice tone="gap" title="What the run collected">{emptyReportContext(collectionContext(events))}</Notice>
         )}
@@ -87,19 +94,21 @@ export function ReportTab({ run, claimId, version, active, events = [] }: { run:
                 const changed = now && (now.version !== c.claim_version || now.superseded_by || now.excluded || !now.eligible_for_report)
                 const selected = claimId === c.claim_id
                 return (
-                  <li key={c.claim_id}>
+                  <li key={`${c.claim_id}-${c.cross_reference ? 'ref' : 'own'}`}>
                     <Panel accent={now ? claimState(now).tone : undefined} className={cn(selected && 'ring-2 ring-primary/40')}>
                       <div className="space-y-2.5 p-3.5">
-                        <button type="button" id={`claim-btn-${c.claim_id}`} onClick={() => open(c.claim_id, null)} aria-current={selected ? 'true' : undefined}
+                        <button type="button" id={`claim-btn-${c.claim_id}${c.cross_reference ? `-in-section-${sec.position}` : ''}`} onClick={() => open(c.claim_id, null)} aria-current={selected ? 'true' : undefined}
                           className="block w-full rounded-md text-left leading-relaxed hover:bg-muted/50">
                           <span className="whitespace-pre-wrap break-words">{c.text}</span>
                         </button>
                         <div className="flex flex-wrap items-center gap-2 text-xs">
                           <span className="text-muted-foreground">Claim {c.claim_id} v{c.claim_version}</span>
+                          {c.cross_reference && <Pill tone="neutral">Same verified claim as in {c.cross_reference.owner_label}, where it was drafted</Pill>}
                           {now ? <ClaimPill claim={now} /> : claims.loading ? <span className="text-muted-foreground">checking current state…</span> : null}
                           {changed && <Pill tone="gap" icon="alert">Changed since this snapshot: {claimState(now).label}</Pill>}
+                          <ConflictPills item={c} />
                         </div>
-                        <ul className="flex flex-wrap gap-1.5" aria-label={`Citations for claim ${c.claim_id}`}>
+                        <ul className="flex flex-wrap gap-1.5" aria-label={`Citations for claim ${c.claim_id}${c.cross_reference ? ` in ${sec.label}` : ''}`}>
                           {c.citations.map((ct, i) => (
                             <li key={ct.passage_id}>
                               <button
@@ -130,6 +139,7 @@ export function ReportTab({ run, claimId, version, active, events = [] }: { run:
                           <div className="flex flex-wrap items-center gap-2 text-xs">
                             <span className="text-muted-foreground">Claim {c.claim_id} v{c.claim_version}</span>
                             <Pill tone="neutral" icon="help">Context, not an answer</Pill>
+                            <ConflictPills item={c} />
                             {c.role_reason && <span className="text-muted-foreground">{c.role_reason}</span>}
                           </div>
                           <ul className="flex flex-wrap gap-1.5" aria-label={`Citations for claim ${c.claim_id}`}>
@@ -153,17 +163,17 @@ export function ReportTab({ run, claimId, version, active, events = [] }: { run:
         ))}
 
         <section aria-labelledby="req-h" className="space-y-3">
-          <SectionHeading id="req-h" description="Every requirement of the final coverage assessment, addressed or not.">Requirements</SectionHeading>
-          {r.unresolved_requirements.length === 0 && r.requirements.length > 0 && <p className="text-sm text-muted-foreground">No requirement was left unresolved in the final assessment.</p>}
+          <SectionHeading id="req-h" description={noAssessment ? 'No coverage assessment was made for this report: these requirements were not assessed.' : 'Every requirement of the final coverage assessment, addressed or not.'}>Requirements</SectionHeading>
+          {unanswered.length === 0 && unassessed.length === 0 && r.requirements.length > 0 && <p className="text-sm text-muted-foreground">No requirement was left unresolved in the final assessment.</p>}
           <ul className="space-y-2">
             {r.requirements.map((q, i) => {
               const st = REQUIREMENT_STATUS[String(q.status)] ?? { label: String(q.status ?? 'Unknown'), tone: 'neutral' as const }
               return (
                 <li key={String(q.requirement_key ?? i)}>
-                  <Panel accent={st.tone === 'ok' ? 'ok' : 'gap'}>
+                  <Panel accent={st.tone === 'ok' ? 'ok' : st.tone === 'neutral' ? undefined : 'gap'}>
                     <div className="space-y-1 p-3 text-sm">
                       <div className="flex flex-wrap items-center gap-2">
-                        <Pill tone={st.tone} icon={st.tone === 'ok' ? 'check' : 'alert'}>{st.label}</Pill>
+                        <Pill tone={st.tone} icon={st.tone === 'ok' ? 'check' : st.tone === 'neutral' ? 'help' : 'alert'}>{st.label}</Pill>
                         <span className="break-words">{String(q.requirement_text ?? q.requirement_key ?? '')}</span>
                       </div>
                       {q.gap ? <p className="text-gap">Gap: {String(q.gap)}</p> : null}

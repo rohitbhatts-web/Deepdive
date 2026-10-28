@@ -10,7 +10,7 @@ from pathlib import Path
 from backend.schema_claims import CLAIMS_SCHEMA
 from backend.schema_report import REPORT_SCHEMA
 
-SCHEMA_VERSION = 8  # 8: answer relevance (claim_relevance, report_claim_roles, report_relevance); older databases gain the tables on connect
+SCHEMA_VERSION = 12  # 12: model_call_rejections (bounded, redacted text of rejected model replies, local diagnostics only); 11: cross-claim consistency (consistency_checks/findings, report_consistency/findings); 10: model_call_diagnostics (what the transport observed about each model request); 9: report_answer_refs (a direct answer shown in another subquestion's section); 8: answer relevance (claim_relevance, report_claim_roles, report_relevance); older databases gain the tables on connect
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS runs (
@@ -125,6 +125,35 @@ CREATE TABLE IF NOT EXISTS source_associations (
 );
 CREATE INDEX IF NOT EXISTS idx_associations_run ON source_associations(run_id, subquestion_id);
 CREATE INDEX IF NOT EXISTS idx_model_calls_run ON model_calls(run_id, id);
+-- What was OBSERVED about one model request, beside its model_calls row: elapsed time, the configured deadline, the transport phases httpcore reported, the number
+-- of HTTP requests actually written, the status and safe headers, and where it failed (transport, outer deadline, HTTP status, parsing or validation). JSON, redacted:
+-- never a request or response body, an Authorization header or a key. Absent for calls recorded before this table existed: that is "not recorded", not "nothing happened".
+CREATE TABLE IF NOT EXISTS model_call_diagnostics (
+    model_call_id INTEGER PRIMARY KEY REFERENCES model_calls(id),
+    diagnostics TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+CREATE TRIGGER IF NOT EXISTS model_call_diagnostics_no_update BEFORE UPDATE ON model_call_diagnostics
+BEGIN SELECT RAISE(ABORT, 'model call diagnostics are immutable'); END;
+CREATE TRIGGER IF NOT EXISTS model_call_diagnostics_no_delete BEFORE DELETE ON model_call_diagnostics
+BEGIN SELECT RAISE(ABORT, 'model call diagnostics are never deleted'); END;
+-- A model reply that was rejected in whole ('envelope') or in part ('items'), kept for LOCAL diagnosis only: never part of a report, an API response or the UI.
+-- The content is UNTRUSTED model output stored as inert text: bounded (content_chars is the original length, truncated says whether it was cut), configured
+-- secrets redacted, and never any request, header or key. `errors` is the structured validation result WITHOUT input values.
+CREATE TABLE IF NOT EXISTS model_call_rejections (
+    id INTEGER PRIMARY KEY,
+    model_call_id INTEGER NOT NULL REFERENCES model_calls(id),
+    stage TEXT NOT NULL CHECK (stage IN ('envelope', 'items')),
+    content TEXT NOT NULL,
+    content_chars INTEGER NOT NULL,
+    truncated INTEGER NOT NULL CHECK (truncated IN (0, 1)),
+    errors TEXT NOT NULL DEFAULT '[]',
+    created_at TEXT NOT NULL
+);
+CREATE TRIGGER IF NOT EXISTS model_call_rejections_no_update BEFORE UPDATE ON model_call_rejections
+BEGIN SELECT RAISE(ABORT, 'rejected replies are immutable diagnostics'); END;
+CREATE TRIGGER IF NOT EXISTS model_call_rejections_no_delete BEFORE DELETE ON model_call_rejections
+BEGIN SELECT RAISE(ABORT, 'rejected replies are never deleted'); END;
 CREATE INDEX IF NOT EXISTS idx_selections_run ON research_selections(run_id, id);
 CREATE INDEX IF NOT EXISTS idx_sources_run ON sources(run_id);
 CREATE INDEX IF NOT EXISTS idx_passages_source ON passages(source_id);
@@ -248,6 +277,16 @@ def claim_run_for_completion(conn: sqlite3.Connection, run_id: int, *, require_c
         f"UPDATE runs SET complete_status = 'completing', updated_at = ? WHERE id = ? AND complete_status = 'not_started'{cond}",
         (utcnow(), run_id),
     )
+    return cur.rowcount == 1
+
+
+def claim_run_for_continuation(conn: sqlite3.Connection, run_id: int) -> bool:
+    """Atomically move a run whose completion job finished or stopped (verification completed, claims stored) back to 'completing' for an explicit continuation
+    that runs under its own budget. The earlier job's reason stays in the audit events. False if not eligible."""
+    cur = conn.execute(
+        "UPDATE runs SET complete_status = 'completing', complete_stop_reason = NULL, updated_at = ? WHERE id = ? AND status IN ('collection_finished', 'stopped')"
+        " AND verify_status = 'completed' AND complete_status IN ('completed', 'stopped') AND EXISTS (SELECT 1 FROM claims WHERE run_id = runs.id)",
+        (utcnow(), run_id))
     return cur.rowcount == 1
 
 
@@ -526,6 +565,33 @@ def record_model_call(
     return cur.lastrowid
 
 
+def record_model_call_diagnostics(conn: sqlite3.Connection, model_call_id: int, diagnostics: dict) -> None:
+    conn.execute("INSERT INTO model_call_diagnostics (model_call_id, diagnostics, created_at) VALUES (?, ?, ?)",
+                 (model_call_id, json.dumps(diagnostics, sort_keys=True), utcnow()))
+
+
+REJECTED_REPLY_MAX_CHARS = 16_000  # several times a 1,500-token reply; anything longer is cut and flagged, never stored unbounded
+
+
+def record_rejected_reply(conn: sqlite3.Connection, model_call_id: int, stage: str, text: str, errors: list[dict], *,
+                          max_chars: int = REJECTED_REPLY_MAX_CHARS) -> None:
+    """Store a rejected reply for local diagnosis. `text` must already have configured secrets redacted (see LLM.record_rejection)."""
+    conn.execute("INSERT INTO model_call_rejections (model_call_id, stage, content, content_chars, truncated, errors, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                 (model_call_id, stage, text[:max_chars], len(text), int(len(text) > max_chars), json.dumps(errors, sort_keys=True, default=str), utcnow()))
+
+
+def model_call_rejections(conn: sqlite3.Connection, run_id: int) -> list[dict]:
+    """Local diagnostics only (scripts and tests): the stored rejected replies of a run's model calls, oldest first. Not served by the API."""
+    rows = conn.execute("SELECT r.* FROM model_call_rejections r JOIN model_calls m ON m.id = r.model_call_id WHERE m.run_id = ? ORDER BY r.id", (run_id,))
+    return [{**dict(r), "errors": json.loads(r["errors"]), "truncated": bool(r["truncated"])} for r in rows]
+
+
+def model_call_diagnostics(conn: sqlite3.Connection, run_id: int) -> dict[int, dict]:
+    """model_call id -> its stored diagnostics, for the calls that have any."""
+    rows = conn.execute("SELECT d.model_call_id, d.diagnostics FROM model_call_diagnostics d JOIN model_calls m ON m.id = d.model_call_id WHERE m.run_id = ?", (run_id,))
+    return {r["model_call_id"]: json.loads(r["diagnostics"]) for r in rows}
+
+
 def list_model_calls(conn: sqlite3.Connection, run_id: int) -> list[dict]:
     rows = conn.execute("SELECT * FROM model_calls WHERE run_id = ? ORDER BY id", (run_id,)).fetchall()
     return [{**dict(r), "ok": bool(r["ok"]),
@@ -534,11 +600,13 @@ def list_model_calls(conn: sqlite3.Connection, run_id: int) -> list[dict]:
 
 
 def model_usage_totals(conn: sqlite3.Connection, run_id: int) -> dict:
-    """Sums of the token counts the API reported. Calls that reported none contribute nothing."""
+    """Sums of the token counts the API reported. Calls that reported none contribute nothing, and a total no call reported is NULL (unknown), never 0:
+    a reported zero stays 0. `calls_with_usage` says how many calls reported any count, so a partial total can be told from a complete one."""
     row = conn.execute(
         "SELECT count(*) AS model_calls, coalesce(sum(ok = 0), 0) AS failed_calls,"
-        " coalesce(sum(prompt_tokens), 0) AS prompt_tokens, coalesce(sum(completion_tokens), 0) AS completion_tokens,"
-        " coalesce(sum(total_tokens), 0) AS total_tokens FROM model_calls WHERE run_id = ?",
+        " coalesce(sum(prompt_tokens IS NOT NULL OR completion_tokens IS NOT NULL OR total_tokens IS NOT NULL), 0) AS calls_with_usage,"
+        " sum(prompt_tokens) AS prompt_tokens, sum(completion_tokens) AS completion_tokens,"
+        " sum(total_tokens) AS total_tokens FROM model_calls WHERE run_id = ?",
         (run_id,),
     ).fetchone()
     return dict(row)

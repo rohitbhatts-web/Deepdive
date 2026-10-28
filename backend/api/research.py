@@ -45,7 +45,7 @@ class ResearchStatus(BaseModel):
     updated_at: str
     subquestions_by_status: dict[str, int]
     counts: dict[str, int]
-    model_usage: dict[str, int]
+    model_usage: dict[str, int | None]  # token totals are None when no call reported them; calls_with_usage counts the calls that did
     limits: dict[str, Any]
 
 

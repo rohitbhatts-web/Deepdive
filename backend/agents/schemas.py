@@ -88,7 +88,9 @@ class Aspects(BaseModel):
 
 class VerifierVerdict(BaseModel):
     verdict: Literal["supported", "partially_supported", "unsupported", "contradicted"]
-    explanation: str = Field(max_length=500, description="Brief reason; name the passages relied on")
+    # A free-text reason, not the verdict. It asks for brevity but tolerates an overrun: Run 2's two validation retries (two of its 20 requests) were valid
+    # verdicts rejected only because this text exceeded a hard 500-character limit. The verdict, evidence and aspect fields stay exactly as strict.
+    explanation: str = Field(max_length=1000, description="Brief reason, under 500 characters; name the passages relied on")
     unsupported_details: list[str] = Field(description="Parts of the claim the evidence does not establish")
     conflicts: list[str] = Field(description="Ways the evidence contradicts the claim")
     evidence_used: list[str] = Field(description="Passage IDs (from those shown) you relied on")

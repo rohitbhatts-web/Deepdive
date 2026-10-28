@@ -235,7 +235,7 @@ def main() -> int:
         print("REFUSING to write: the checks above failed", file=sys.stderr)
         return 1
     if not a.dry_run:
-        dump = "\n".join(dst.iterdump()) + "\n"
+        dump = "\n".join(dst.iterdump()) + f"\nPRAGMA user_version = {db.SCHEMA_VERSION};\n"  # the loader (backend.demo_seed) builds from this version
         a.out.parent.mkdir(parents=True, exist_ok=True)
         with open(a.out, "wb") as f:
             f.write(gzip.compress(dump.encode("utf-8"), mtime=0))

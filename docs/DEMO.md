@@ -1,5 +1,9 @@
 # Demo script: recorded runs (no live research)
 
+> **Status (28 Oct 2026).** This is the 22 Oct script. It needs the private run databases, which are not published. To view recorded runs without them,
+> use the hosted demo (`docs/HOSTING.md`), which holds a cleared, sanitized dataset. The newer completed live run of 28 Oct (see the README) is shown in a
+> separate, locally recorded walkthrough; its evidence is not published.
+
 Everything below is shown from **recorded runs**: stored databases from real research and development runs made on 21-22 Oct 2026. Nothing is researched during the demo, no model, search or page fetch is
 called, and no credits are spent. Say so on screen: "recorded run, not live".
 

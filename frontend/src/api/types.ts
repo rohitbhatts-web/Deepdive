@@ -33,7 +33,8 @@ export interface ResearchStatus {
   updated_at: string
   subquestions_by_status: Record<string, number>
   counts: Record<string, number>
-  model_usage: { model_calls: number; failed_calls: number; prompt_tokens: number; completion_tokens: number; total_tokens: number }
+  /** Token totals are null when no call reported them (unknown, not zero); calls_with_usage is how many calls did. */
+  model_usage: { model_calls: number; failed_calls: number; calls_with_usage?: number; prompt_tokens: number | null; completion_tokens: number | null; total_tokens: number | null }
   limits: Record<string, number>
 }
 
@@ -89,7 +90,27 @@ export interface ReportClaim {
   requirement_keys?: string[]
   role_reason?: string | null
   requirement_texts?: string[]
+  cross_reference?: { owner_label: string; owner_subquestion_id: number } | null // this section shows a claim owned by another section (the same verified claim)
+  conflicts?: { finding_id: number; with_claim_ids: number[] }[] // flagged possible conflicts this claim is part of (absent when none, and on reports made before the check existed)
   citations: Citation[]
+}
+
+export interface ConsistencyFinding {
+  id: number
+  kind: 'conflict' | 'scope' | 'condition' | 'time' | 'terminology'
+  explanation: string
+  claim_ids: number[]
+  evidence: { claim_id: number; passage_id: string; text_shown: boolean }[]
+}
+
+/** `status` is how much was checked; `findings` is what was flagged. They are independent: a partial or failed check can still carry conflicts. */
+export interface ReportConsistency {
+  status: 'reviewed' | 'partial' | 'failed' | 'not_checked' | 'not_applicable' | 'not_recorded'
+  reason?: string
+  has_conflicts?: boolean
+  findings: ConsistencyFinding[]
+  unchecked_claim_ids?: number[]
+  limited_evidence?: Record<string, string>
 }
 
 export interface ReportSection {
@@ -124,8 +145,11 @@ export interface Report {
   verifier_rubrics?: string[]
   sections: ReportSection[]
   requirements: ReportRequirement[]
-  unresolved_requirements: ReportRequirement[]
+  unresolved_requirements: ReportRequirement[] // assessed as not (fully) answered
+  unassessed_requirements?: ReportRequirement[] // NOT assessed (no coverage assessment covers them): unknown, not unanswered
+  coverage_assessed?: boolean | null // false: the report was built without any coverage assessment
   omissions: Record<string, unknown>[]
+  consistency?: ReportConsistency // absent or status 'not_recorded' on reports made before the cross-claim check existed
   markdown: string
 }
 

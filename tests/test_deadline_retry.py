@@ -215,7 +215,7 @@ def test_an_explicit_retry_continues_from_stored_evidence_without_any_retrieval(
     assert done["complete_status"] == "completed" and done["report_outcome"] == "claims_all_requirements_addressed"
     # no retrieval of any kind: no search query, no page request, no query-writing or page-selecting model step
     assert search.queries == [] and web.requests == []
-    assert set(mesh.steps()) <= {"draft", "verify", "coverage", "synth", "obligations"}
+    assert set(mesh.steps()) <= {"draft", "verify", "coverage", "synth", "obligations", "consistency"}
     # the stored evidence was used as it was: same single source, no new source
     assert len(client.get(f"/runs/{r['run']}/sources").json()) == 1
     # lineage: the retry event carries the failed job's final budget and reason, and the failed job's own record is untouched

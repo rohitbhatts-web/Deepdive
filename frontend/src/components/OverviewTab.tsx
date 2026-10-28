@@ -4,12 +4,15 @@ import { createPortal } from 'react-dom'
 import type { Claim, Coverage, ModelCall, Report, RunSummary } from '@/api/types'
 import { useResource } from '@/hooks/useApi'
 import { hrefFor } from '@/lib/route'
+import { requirementBuckets } from '@/lib/claimState'
 import { coverageBySubquestion, coverageTotals, evidenceMap, outcomeSummary, requestsByStage } from '@/lib/overview'
 import { cn } from '@/lib/utils'
 import { Empty, ErrorBox, Loading, Panel, Pill, SafeLink, SectionHeading, num } from './bits'
+import { ConflictPills, ConsistencyNotice } from './ConsistencyNotice'
 import { EvidenceMap, type MapSelection } from './EvidenceMap'
 import { ClaimPill, Inspector } from './Inspector'
-import { latestJobRequests, type Live } from './RunPage'
+import { latestJobBudget, latestJobRequests } from '@/lib/usage'
+import type { Live } from './RunPage'
 
 interface SourceRow { id: number; final_url: string; title: string | null; retrieved_at: string; content_type: string; passage_count: number }
 
@@ -176,7 +179,7 @@ export function OverviewTab({ run, live, version, claimId }: { run: RunSummary; 
   const pending = (run.report_outcome !== null && report.loading && !rep) || (claims.loading && !claims.data)
   const outcome = pending ? { headline: 'Loading the stored report…', detail: 'The answer, evidence and coverage appear as soon as they are read.', tone: 'neutral' as const }
     : outcomeSummary(run, rep, live.completion, rep ? rep.requirements : requirements, stale)
-  const open = rep ? rep.unresolved_requirements : requirements.filter((r) => r.status !== 'addressed')
+  const { unanswered: open, unassessed } = requirementBuckets<{ status?: string }>(rep ? rep.requirements : requirements)  // never-assessed requirements are not listed as unanswered
   const active = live.research.status === 'researching' || run.complete_status === 'completing' || run.verify_status === 'verifying'
   const stop = live.completion.stop_reason ?? run.stop_reason
   const stoppedEarly = !active && (run.complete_status === 'stopped' || run.status === 'stopped')
@@ -233,6 +236,7 @@ export function OverviewTab({ run, live, version, claimId }: { run: RunSummary; 
           <SectionHeading id="answer-h" description="Claims the report lists as answers, exactly as stored.">Research answer</SectionHeading>
         </div>
         {historicalNote}
+        <ConsistencyNotice consistency={rep?.consistency} compact />
         {report.loading && !rep && <Loading label="Loading answer" blocks={2} />}
         {!rep && !report.loading && <Empty title={active ? 'The answer is not written yet' : 'No answer was produced'}>{active ? 'It appears here when the run finishes.' : 'This run stored no report, so there is nothing to preview.'}</Empty>}
         {rep && answers.length === 0 && <p className="text-sm text-muted-foreground">No verified claim directly answers a requirement of this question.</p>}
@@ -245,6 +249,7 @@ export function OverviewTab({ run, live, version, claimId }: { run: RunSummary; 
                   <p className="min-w-0 whitespace-pre-wrap break-words text-base font-medium leading-snug">{c.text}</p>
                   {cur && <span className="shrink-0"><ClaimPill claim={cur} /></span>}
                 </div>
+                {c.conflicts?.length ? <div className="mt-2 flex flex-wrap gap-1.5"><ConflictPills item={c} /></div> : null}
                 {(c.requirement_texts?.length ?? 0) > 0 && <p className="mt-2 line-clamp-2 text-sm text-muted-foreground" title={c.requirement_texts!.join('; ')}>Answers: {c.requirement_texts!.join('; ')}</p>}
                 <button type="button" id={`ans-clm-${c.claim_id}`} aria-label={`Inspect evidence for claim ${c.claim_id}`} onClick={() => pick({ kind: 'claim', id: c.claim_id })}
                   className="mt-3 inline-flex items-center gap-2 rounded-lg border bg-muted/40 px-3 py-1.5 text-sm font-medium transition-colors hover:border-primary/50 hover:bg-accent">
@@ -269,7 +274,9 @@ export function OverviewTab({ run, live, version, claimId }: { run: RunSummary; 
           <SectionHeading id="open-h" description={open.length ? 'Requirements the stored claims do not fully answer.' : undefined}>Still unanswered{open.length ? ` (${open.length})` : ''}</SectionHeading>
         </div>
         {open.length === 0 ? (
-          <p className="text-sm">{rep || requirements.length ? 'Every requirement was assessed as addressed. That is a model assessment, not a guarantee of truth.' : 'No coverage assessment is stored, so open requirements are unknown.'}</p>
+          <p className="text-sm">{unassessed.length
+            ? `${unassessed.length} requirement${unassessed.length === 1 ? ' was' : 's were'} not assessed: no coverage assessment covers ${unassessed.length === 1 ? 'it' : 'them'}, so whether ${unassessed.length === 1 ? 'it is' : 'they are'} answered is unknown.`
+            : rep || requirements.length ? 'Every requirement was assessed as addressed. That is a model assessment, not a guarantee of truth.' : 'No coverage assessment is stored, so open requirements are unknown.'}</p>
         ) : (
           <ul className="space-y-2.5">
             {shownGaps.map((r) => {
@@ -312,7 +319,7 @@ export function OverviewTab({ run, live, version, claimId }: { run: RunSummary; 
         <Metric href={hrefFor(run.id, 'evidence')} icon={FileText} label="Sources collected" value={num(live.research.counts.sources)} note={`${map.counts.sourcesCited} cited by a claim`} />
         <Metric href={hrefFor(run.id, 'report')} icon={ListChecks} label="Claims in report" value={rep ? answers.length : pending ? '…' : 'None yet'} note={stale ? `${stale} not eligible now` : 'verified answers'} />
         <Metric href={hrefFor(run.id, 'coverage')} icon={Target} label="Requirements addressed" value={totals.total ? `${totals.addressed} of ${totals.total}` : coverage.loading ? '…' : 'Unavailable'} note={totals.total ? `${totals.partial} partial · ${totals.open} open` : 'not assessed'} />
-        <Metric href={hrefFor(run.id, 'usage')} icon={Cpu} label="Model requests" value={latestJobRequests(live.completion)} note={`latest job · ${num(live.research.model_usage.model_calls)} in total`} />
+        <Metric href={hrefFor(run.id, 'usage')} icon={Cpu} label="Model requests" value={latestJobRequests(live.events, live.completion)} note={`${latestJobBudget(live.events, live.completion)?.source ?? 'no job budget recorded'} · ${num(live.research.model_usage.model_calls)} in total`} />
       </ul>
 
       <div className="contents @5xl:order-2 @5xl:grid @5xl:items-start @5xl:gap-5 @5xl:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">

@@ -1,5 +1,6 @@
-"""Versioned updates of the persistent hosted-demo database: the A1/A2 v5 development check is added as run 3, existing runs are untouched, a backup is made first,
-and a second import (same update, or the same run after the ledger was lost) is refused. No network, no model call."""
+"""Versioned updates of the hosted-demo database: the A1/A2 v5 development check is added as run 3, existing runs are untouched, a backup is made first,
+and a second import (same update, or the same run after the ledger was lost) is refused. The schema-8 package is applied before the schema upgrade, by the
+offline build; an existing deployment's database is upgraded only as a copy; the read-only server writes nothing. No network, no model call."""
 
 import gzip
 import hashlib
@@ -12,6 +13,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from backend import db
+from backend import demo_seed as seed_mod
 from backend import demo_update as upd
 from backend.config import Settings
 from backend.main import create_app
@@ -19,23 +21,25 @@ from backend.public import create_public_app
 
 ROOT = Path(__file__).parent.parent
 SEED = ROOT / "demo" / "seed.sql.gz"
-PACKAGE = ROOT / "demo" / "updates" / "0002-a1a2-v5.json.gz"
+UPDATES = ROOT / "demo" / "updates"
+PACKAGE = UPDATES / "0002-a1a2-v5.json.gz"
 ALLOWED = {"en.wikipedia.org", "datatracker.ietf.org", "www.rfc-editor.org", "rfc-editor.org", "www.postgresql.org"}
 CLAIM = "The HTTP/2 specification was published as RFC 9113 in June 2022."
 
 
 def raw_base(path: Path) -> Path:
-    """A database exactly as the first deployment made it: the seed only, no update ledger."""
+    """A database exactly as the first deployment made it: the seed only, at the seed's schema version 8, no update ledger."""
+    path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(path)
     conn.executescript(gzip.decompress(SEED.read_bytes()).decode("utf-8"))
-    conn.execute(f"PRAGMA user_version = {db.SCHEMA_VERSION}")
+    conn.execute(f"PRAGMA user_version = {seed_mod.SEED_SCHEMA_VERSION}")
     conn.commit()
     conn.close()
     return path
 
 
 def rows(path: Path) -> dict:
-    """Every row of every data table, as comparable strings (the update ledger is excluded)."""
+    """Every row of every data table, as comparable strings (the update ledger, whose times differ, is excluded)."""
     conn = sqlite3.connect(f"file:{path.as_posix()}?mode=ro", uri=True)
     out = {}
     for (t,) in conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name <> 'demo_updates' ORDER BY name").fetchall():
@@ -63,7 +67,7 @@ def settings_for(volume: Path, **kw) -> Settings:
 
 def test_the_package_is_sanitized_and_internally_consistent():
     package = upd.load_package(PACKAGE)
-    assert package["id"] == "0002-a1a2-v5" and package["schema_version"] == db.SCHEMA_VERSION and len(package["runs"]) == 1
+    assert package["id"] == "0002-a1a2-v5" and package["schema_version"] == seed_mod.SEED_SCHEMA_VERSION < db.SCHEMA_VERSION and len(package["runs"]) == 1
     assert package["sanitization"]["withheld_sources"] == [] and package["sanitization"]["scrubbed_runs"] == []
     sources = package["tables"]["sources"]
     assert {urlparse(s["final_url"]).netloc for s in sources} <= ALLOWED  # only cleared sources carry text
@@ -108,8 +112,10 @@ def test_applying_adds_run_3_keeps_runs_1_and_2_byte_for_byte_and_backs_up_first
 def test_the_recorded_claims_verdicts_roles_and_gaps_are_preserved_through_the_api(volume):
     path = raw_base(volume.parent / "d.db")
     upd.apply_update(path, PACKAGE, volume.parent / "backups")
+    served = volume.parent / "served.db"
+    seed_mod.migrate_copy(path, served)
     s = settings_for(volume)
-    s = s.model_copy(update={"database_path": str(path)})
+    s = s.model_copy(update={"database_path": str(served)})
     import backend.api.runs as runs_mod
     import backend.mesh_client as mc
     runs_mod.get_settings, mc.get_settings = (lambda: s), (lambda: s)
@@ -140,7 +146,7 @@ def test_the_recorded_claims_verdicts_roles_and_gaps_are_preserved_through_the_a
             demo = c.get("/api/demo").json()
             assert [r["run_id"] for r in demo["runs"]] == [1, 2, 3] and demo["runs"][2]["title"].startswith("Controlled development check")
             ready = c.get("/ready").json()
-            assert ready["runs"] == 3 and ready["update_error"] is None
+            assert ready == {"status": "ready", "runs": 3}
             assert c.post("/api/runs/3/retry", json={"confirm_paid_retry": True}).status_code == 403
     finally:
         import backend.config as cfg
@@ -184,6 +190,7 @@ def test_a_different_database_and_a_dry_run_are_handled_without_writing(volume, 
     other = tmp_path / "other.db"
     c = db.connect(other)
     c.execute("INSERT INTO runs (question, status, created_at, updated_at) VALUES ('something else', 'created', 'a', 'a')")
+    c.execute(f"PRAGMA user_version = {seed_mod.SEED_SCHEMA_VERSION}")  # the package's schema, so the base-run check is what refuses it
     c.close()
     with pytest.raises(upd.UpdateError, match="base runs"):
         upd.apply_update(other, PACKAGE, tmp_path / "b")
@@ -193,37 +200,48 @@ def test_a_different_database_and_a_dry_run_are_handled_without_writing(volume, 
     assert plan["would_apply"] == "0002-a1a2-v5" and plan["runs"] == [3] and sha(path) == before and not (tmp_path / "b2").exists()
 
 
-def test_start_up_applies_pending_updates_once_and_a_fresh_deployment_reaches_the_same_content(volume, tmp_path):
-    live = raw_base(tmp_path / "live" / "deepdive.db") if (tmp_path / "live").mkdir() is None else None  # an existing deployment
-    s_live = settings_for(volume).model_copy(update={"database_path": str(live)})
-    with TestClient(create_public_app(s_live, create_app(s_live))) as c:
-        assert c.get("/ready").json() == {"status": "ready", "runs": 3, "update_error": None}
-    first = sha(live)
-    with TestClient(create_public_app(s_live, create_app(s_live))) as c:  # a restart: nothing more is applied, nothing is duplicated
-        assert c.get("/ready").json()["runs"] == 3
-    assert sha(live) == first and len(list((tmp_path / "live" / "backups").iterdir())) == 1
-    fresh_dir = tmp_path / "fresh"
-    s_fresh = settings_for(volume).model_copy(update={"database_path": str(fresh_dir / "deepdive.db")})
-    with TestClient(create_public_app(s_fresh, create_app(s_fresh))) as c:  # a new volume: seed, then the same update
-        assert c.get("/ready").json()["runs"] == 3
-    assert rows(fresh_dir / "deepdive.db") == rows(live)  # identical data, identical ids
+def test_an_existing_deployment_upgraded_as_a_copy_matches_a_fresh_build_and_the_original_is_never_changed(tmp_path):
+    live = raw_base(tmp_path / "live" / "deepdive.db")  # the deployed volume: the seed at schema 8, then update 0002 applied at a start-up
+    upd.apply_update(live, PACKAGE, tmp_path / "live" / "backups")
+    deployed = sha(live)
+    copy = seed_mod.migrate_copy(live, tmp_path / "upgraded.db")
+    assert sha(live) == deployed and not (tmp_path / "live" / "deepdive.db-wal").exists()  # the original is only read
+    built = seed_mod.build_demo_db(tmp_path / "fresh.db", SEED, UPDATES)
+    assert copy["schema_version"] == built["schema_version"] == db.SCHEMA_VERSION and copy["runs"] == built["runs"] == 3
+    assert built["updates"] == copy["updates"] == ["0001-base", "0002-a1a2-v5"]
+    assert rows(tmp_path / "upgraded.db") == rows(tmp_path / "fresh.db")  # identical data and ids, including the newer schema's (empty) tables
+    with pytest.raises(FileExistsError):
+        seed_mod.migrate_copy(live, tmp_path / "upgraded.db")  # never overwritten
 
 
-def test_a_refused_update_leaves_the_demo_serving_and_does_not_list_the_missing_run(volume, tmp_path):
-    path = raw_base(tmp_path / "d.db")
-    conn = sqlite3.connect(path)
-    conn.execute("INSERT INTO sources (id, run_id, requested_url, final_url, title, retrieved_at, content_type, content_hash, snapshot) VALUES (10, 1, 'u', 'u', 't', 'x', 'text/html', 'h', 's')")
-    conn.commit()
-    conn.close()
-    s = settings_for(volume).model_copy(update={"database_path": str(path)})
-    import backend.api.runs as runs_mod
-    import backend.config as cfg
-    import backend.mesh_client as mc
-    runs_mod.get_settings = mc.get_settings = lambda: s
-    try:
+def test_the_read_only_server_writes_nothing_at_start_up_and_refuses_a_database_it_would_have_to_change(volume, tmp_path):
+    built = tmp_path / "built" / "deepdive.db"
+    seed_mod.build_demo_db(built, SEED, UPDATES)
+    before = sha(built)
+    s = settings_for(volume).model_copy(update={"database_path": str(built)})
+    for _ in range(2):  # a start and a restart
         with TestClient(create_public_app(s, create_app(s))) as c:
-            ready = c.get("/ready")
-            assert ready.status_code == 200 and "already has a row" in ready.json()["update_error"] and ready.json()["runs"] == 2
-            assert [r["run_id"] for r in c.get("/api/demo").json()["runs"]] == [1, 2]
-    finally:
-        runs_mod.get_settings = mc.get_settings = cfg.get_settings
+            assert c.get("/ready").json() == {"status": "ready", "runs": 3}
+    assert sha(built) == before and sorted(p.name for p in built.parent.iterdir()) == ["deepdive.db"]  # no journal, WAL, backup or ledger change
+    old = raw_base(tmp_path / "old" / "deepdive.db")  # an existing schema-8 volume: refused, not upgraded in place
+    old_sha = sha(old)
+    s_old = settings_for(volume).model_copy(update={"database_path": str(old)})
+    with pytest.raises(RuntimeError, match="older schema"), TestClient(create_public_app(s_old, create_app(s_old))):
+        pass
+    assert sha(old) == old_sha
+    s_missing = settings_for(volume).model_copy(update={"database_path": str(tmp_path / "missing" / "deepdive.db")})
+    with pytest.raises(RuntimeError, match="demo database not found"), TestClient(create_public_app(s_missing, create_app(s_missing))):
+        pass
+    assert not (tmp_path / "missing").exists()  # nothing was created
+
+
+def test_a_build_with_a_refused_update_writes_nothing(tmp_path):
+    updates = tmp_path / "updates"
+    updates.mkdir()
+    tampered = json.loads(gzip.decompress(PACKAGE.read_bytes()))
+    tampered["tables"]["claims"][0]["text"] = "an edited claim"
+    (updates / PACKAGE.name).write_bytes(gzip.compress(json.dumps(tampered).encode()))
+    dest = tmp_path / "out" / "deepdive.db"
+    with pytest.raises(upd.UpdateError, match="does not match its recorded hash"):
+        seed_mod.build_demo_db(dest, SEED, updates)
+    assert list(dest.parent.iterdir()) == []  # no database and no partial file

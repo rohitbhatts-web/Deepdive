@@ -19,7 +19,7 @@ afterEach(() => {
 const RESEARCH: ResearchStatus = {
   run_id: 7, status: 'collection_finished', stop_reason: null, updated_at: RUN.updated_at, subquestions_by_status: {},
   counts: { searches: 2, sources: 3, page_fetch_attempts: 4 },
-  model_usage: { model_calls: 21, failed_calls: 0, prompt_tokens: 1000, completion_tokens: 200, total_tokens: 1200 },
+  model_usage: { model_calls: 21, failed_calls: 0, calls_with_usage: 21, prompt_tokens: 1000, completion_tokens: 200, total_tokens: 1200 },
   limits: { model_requests: 15, search_queries: 2, page_fetches: 4 },
 }
 const COMPLETION: Completion = {

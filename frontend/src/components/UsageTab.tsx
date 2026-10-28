@@ -1,7 +1,8 @@
 import type { ModelCall, RunSummary } from '@/api/types'
 import { useResource } from '@/hooks/useApi'
-import { ErrorBox, Loading, Notice, Panel, SectionHeading, StatTile, UNAVAILABLE, num } from './bits'
-import { latestJobRequests, type Live } from './RunPage'
+import { latestJobBudget, latestJobRequests, tokenValue, usageNote } from '@/lib/usage'
+import { ErrorBox, Loading, Notice, Panel, SectionHeading, StatTile, UNAVAILABLE, num, when } from './bits'
+import type { Live } from './RunPage'
 
 interface Row { agent: string; calls: number; failed: number; prompt: number | null; completion: number | null }
 
@@ -21,13 +22,15 @@ function byAgent(calls: ModelCall[]): Row[] {
 
 const BUDGET_LABEL: Record<string, string> = {
   model_requests: 'Model requests', search_queries: 'Web searches', page_fetches: 'Page fetches',
-  candidate_claims: 'Corrective candidate claims', output_tokens: 'Output tokens', elapsed_seconds: 'Elapsed seconds',
+  candidate_claims: 'Corrective candidate claims', output_tokens: 'Output-token cap counted (a reservation, not usage)', elapsed_seconds: 'Elapsed seconds',
 }
 
 export function UsageTab({ run, live, version }: { run: RunSummary; live: Live; version: number }) {
   const calls = useResource<ModelCall[]>(`/runs/${run.id}/model-calls`, version)
   const used = live.research.model_usage
-  const budget = live.completion.budget_used_of_limit
+  const job = latestJobBudget(live.events, live.completion)
+  const budget = job?.budget ?? null
+  const note = usageNote(used)
   const rows = calls.data ? byAgent(calls.data) : []
   return (
     <div className="space-y-8">
@@ -36,10 +39,11 @@ export function UsageTab({ run, live, version }: { run: RunSummary; live: Live; 
         <dl className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
           <StatTile label="Total model calls for this run">{num(used.model_calls)}</StatTile>
           <StatTile label="Failed requests">{num(used.failed_calls)}</StatTile>
-          <StatTile label="Prompt tokens">{num(used.prompt_tokens)}</StatTile>
-          <StatTile label="Completion tokens">{num(used.completion_tokens)}</StatTile>
-          <StatTile label="Total tokens">{num(used.total_tokens)}</StatTile>
+          <StatTile label="Prompt tokens">{tokenValue(used.prompt_tokens, used)}</StatTile>
+          <StatTile label="Completion tokens">{tokenValue(used.completion_tokens, used)}</StatTile>
+          <StatTile label="Total tokens">{tokenValue(used.total_tokens, used)}</StatTile>
         </dl>
+        {note && <p className="text-sm text-muted-foreground">{note}</p>}
         {calls.loading && !calls.data && <Loading label="Loading per-agent usage" blocks={1} />}
         {calls.error && <ErrorBox error={calls.error} what="model calls" />}
         {rows.length > 0 && (
@@ -69,15 +73,16 @@ export function UsageTab({ run, live, version }: { run: RunSummary; live: Live; 
       </section>
 
       <section aria-labelledby="bud-h" className="space-y-3">
-        <SectionHeading id="bud-h" description="Recorded when the latest completion job finished. It counts that job only, so its request total can be lower than the run total above.">Latest job: budget used / limit</SectionHeading>
-        <p className="text-sm">Latest job requests used / limit: <strong>{latestJobRequests(live.completion)}</strong></p>
+        <SectionHeading id="bud-h" description={job ? `Recorded when the ${job.source} finished${job.at ? ` (${when(job.at)})` : ''}, the latest job that stored a budget. It counts that job only, so its request total can be lower than the run total above.` : 'The budget a job records when it finishes.'}>Latest job: budget used / limit</SectionHeading>
+        <p className="text-sm">Latest job requests used / limit: <strong>{latestJobRequests(live.events, live.completion)}</strong>{job ? <span className="text-muted-foreground"> · from the {job.source}</span> : null}</p>
         {budget ? (
           <dl className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             {Object.entries(budget).map(([k, v]) => (<StatTile key={k} label={BUDGET_LABEL[k] ?? k}>{num(v[0])} of {num(v[1])}</StatTile>))}
           </dl>
         ) : (
-          <p className="text-sm text-muted-foreground">{UNAVAILABLE}: the final budget is recorded only when the completion step finishes.</p>
+          <p className="text-sm text-muted-foreground">{UNAVAILABLE}: no job has recorded its final budget for this run yet.</p>
         )}
+        {budget?.output_tokens && <p className="text-sm text-muted-foreground">The output-token figure counts an assumed per-call maximum for every call that reported no usage (a failed or timed-out call reports none), so it is a reservation against the cap, not measured usage.</p>}
       </section>
 
       <section aria-labelledby="cost-h" className="space-y-3">

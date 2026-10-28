@@ -145,7 +145,7 @@ def run_reviser(conn, settings, r, claim_id, reply):
 def test_a_revision_is_a_new_immutable_version_with_no_inherited_verdict(conn, settings):
     r, ids = seed_mixed(conn, settings)
     before = claims.get_claim(conn, r["run"], ids["B"])
-    out, mesh = run_reviser(conn, settings, r, ids["B"], revise("The SQLite database is a single file on disk.", (r["p"](0), SINGLE_FILE)))
+    out, mesh = run_reviser(conn, settings, r, ids["B"], revise("Each SQLite database is kept in one ordinary file.", (r["p"](0), SINGLE_FILE)))
     new = claims.get_claim(conn, r["run"], out["claim_id"])
     assert out["action"] == "revised" and (new["parent_claim_id"], new["version"]) == (ids["B"], 2)
     assert new["provenance"]["revision"]["kind"] == "wording_repair" and new["provenance"]["revision"]["from_claim_id"] == ids["B"]
@@ -317,7 +317,14 @@ def test_a_partial_report_shows_unresolved_requirements_and_what_was_left_out(co
     rep = get_report(conn, r["run"], make_report(conn, r, None)["report_id"])
     assert rep["outcome"] == "claims_with_gaps" and rep["fully_addressed"] is False
     assert [u["requirement_key"] for u in rep["unresolved_requirements"]] == ["Q1.R2", "Q2.R1"]
-    assert "No direct answer to this subquestion was found." in rep["markdown"] and "release date missing" in rep["markdown"]  # judged report: an unanswered section says so
+    # Claim A is owned by Section 1 and coverage recorded it as a direct answer to a requirement of Section 2 too: Section 2 REFERENCES the same report claim
+    # (exact text, same citations), still lists what it leaves open, and the section no longer claims there is no answer at all.
+    sec1, sec2 = rep["sections"]
+    assert [i["claim_id"] for i in sec1["claims"]] == [ids["A"]] and "cross_reference" not in sec1["claims"][0]
+    assert [i["claim_id"] for i in sec2["claims"]] == [ids["A"]] and sec2["claims"][0]["cross_reference"]["owner_label"] == "Section 1" and sec2["answered"] is True
+    assert sec2["claims"][0]["text"] == sec1["claims"][0]["text"] and sec2["claims"][0]["citations"] == sec1["claims"][0]["citations"]
+    assert "the same verified claim as in Section 1, where it was drafted" in rep["markdown"] and "release date missing" in rep["markdown"]
+    assert "No direct answer to this subquestion was found." not in rep["markdown"]
     omitted = {o["claim_id"]: o["reason"] for o in rep["omissions"]}
     assert omitted[ids["B"]] == "not eligible: integrity_failed" and omitted[ids["C"]] == "not eligible: partially_supported"
     assert ids["T"] not in omitted  # a test input is not even listed
@@ -434,7 +441,9 @@ def test_a_run_without_claims_is_verified_first_inside_the_same_job(client, comp
     assert client.get(f"/runs/{r['run']}/completion").json()["complete_status"] == "completed"
 
 
-def test_a_model_failure_ends_failed_without_a_report_or_a_success_claim(client, complete_env, settings):
+def test_a_model_failure_ends_failed_with_an_honest_not_assessed_report_and_no_success_claim(client, complete_env, settings):
+    # Before 28 Oct 2026 a coverage failure ended the job with NO report. It now still gets a report that says the requirements were NOT ASSESSED (and
+    # the consistency check when two claims are eligible); the job is marked failed with the reason. Nothing is claimed as a success.
     conn = db.connect(client.db_path)
     seed_mixed(conn, settings)
     conn.close()
@@ -442,7 +451,9 @@ def test_a_model_failure_ends_failed_without_a_report_or_a_success_claim(client,
     client.post("/runs/1/complete")
     done = client.get("/runs/1/completion").json()
     assert done["complete_status"] == "failed" and "coverage assessment failed" in done["stop_reason"]
-    assert done["report_id"] is None and client.get("/runs/1/report").status_code == 404
+    rep = client.get("/runs/1/report").json()
+    assert done["report_id"] == rep["id"] and rep["coverage_assessed"] is False and rep["unresolved_requirements"] == []
+    assert rep["outcome"] != "claims_all_requirements_addressed" and "coverage assessment failed" in rep["stop_reason"]
     assert client.get("/runs/1/claims").json()  # nothing was destroyed
 
 
@@ -493,7 +504,7 @@ def test_phase_3_data_survives_the_schema_v6_migration(tmp_path):
     from backend.config import Settings
 
     r, ids = seed_mixed(c, Settings(mesh_api_key=""))
-    c.executescript("DROP TABLE report_claim_roles; DROP TABLE report_relevance; DROP TABLE claim_relevance; DROP TABLE obligation_supporting_claims; DROP TABLE obligation_assessments; DROP TABLE coverage_obligations;"
+    c.executescript("DROP TABLE report_answer_refs; DROP TABLE report_claim_roles; DROP TABLE report_relevance; DROP TABLE claim_relevance; DROP TABLE obligation_supporting_claims; DROP TABLE obligation_assessments; DROP TABLE coverage_obligations;"
                     " DROP TABLE report_omissions; DROP TABLE report_gaps; DROP TABLE report_citations; DROP TABLE report_claims;"
                     " DROP TABLE report_sections; DROP TABLE reports; DROP TABLE coverage_supporting_claims;"
                     " DROP TABLE coverage_assessments; DROP TABLE correction_tasks; DROP TABLE claim_dispositions;")
@@ -677,7 +688,8 @@ def test_derivation_happens_in_the_job_is_budgeted_and_the_unmet_subject_reaches
                     coverage=reply, queries=queries("sqlite architecture type overview"), select=select(), synth=synth((1, [pg])))
     complete_env(mesh, FakeSearch({"sqlite architecture type overview": []}), max_correction_rounds=1, max_search_queries=1)
     client.post("/runs/1/complete")
-    assert mesh.steps() == ["obligations", "coverage", "queries", "coverage", "synth"]  # derivation is a counted request; no hits, so no selection
+    # derivation is a counted request; no hits, so no selection; the search changed no claim, so the assessment is not repeated
+    assert mesh.steps() == ["obligations", "coverage", "queries", "synth"]
     prompt = next(c for c in mesh.calls if "Write targeted web search queries" in c["messages"][0]["content"])["messages"][1]["content"]
     assert "SQLite / architecture type: no claim about SQLite architecture" in prompt and 'kind="detail"' in prompt
     cov = client.get("/runs/1/coverage?round=0").json()
@@ -686,4 +698,4 @@ def test_derivation_happens_in_the_job_is_budgeted_and_the_unmet_subject_reaches
         ("SQLite", "unresolved"), ("PostgreSQL", "addressed")]
     rep = client.get("/runs/1/report").json()
     assert rep["outcome"] == "claims_with_gaps" and {u["requirement_key"] for u in rep["unresolved_requirements"]} >= {"Q1.R1"}
-    assert client.get("/runs/1/completion").json()["budget_used_of_limit"]["model_requests"][0] == 5
+    assert client.get("/runs/1/completion").json()["budget_used_of_limit"]["model_requests"][0] == 4

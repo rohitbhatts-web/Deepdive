@@ -98,7 +98,7 @@ class VerificationStatus(BaseModel):
     by_integrity: dict[str, int]  # passed | failed | unchecked
     by_semantic: dict[str, int]  # supported | partially_supported | ... | error | none (never judged)
     eligible_for_report: int
-    model_usage_by_agent: dict[str, dict[str, int]]
+    model_usage_by_agent: dict[str, dict[str, int | None]]  # token totals are None when no call of the agent reported them
 
 
 def _claim_or_404(conn: sqlite3.Connection, run_id: int, claim_id: int) -> dict:
@@ -126,10 +126,10 @@ def get_claim(run_id: RunId, claim_id: RunId, conn: sqlite3.Connection = Depends
 @router.get("/runs/{run_id}/verification", response_model=VerificationStatus)
 def verification_status(run_id: RunId, conn: sqlite3.Connection = Depends(get_db)):
     run = _require_run(conn, run_id)
-    usage: dict[str, dict[str, int]] = {}
+    usage: dict[str, dict[str, int | None]] = {}
     for row in conn.execute(
-        "SELECT agent, count(*) AS calls, coalesce(sum(ok = 0), 0) AS failed, coalesce(sum(prompt_tokens), 0) AS p,"
-        " coalesce(sum(completion_tokens), 0) AS c FROM model_calls WHERE run_id = ?"
+        "SELECT agent, count(*) AS calls, coalesce(sum(ok = 0), 0) AS failed, sum(prompt_tokens) AS p,"
+        " sum(completion_tokens) AS c FROM model_calls WHERE run_id = ?"
         " AND agent IN ('drafter', 'verifier') GROUP BY agent", (run_id,)):
         usage[row["agent"]] = {"calls": row["calls"], "failed_calls": row["failed"],
                                "prompt_tokens": row["p"], "completion_tokens": row["c"]}

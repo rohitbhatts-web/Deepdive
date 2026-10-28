@@ -1,5 +1,7 @@
 # Hosted recorded demo: the production React build and the FastAPI backend behind ONE origin, one worker, read-only.
-# Build:  docker build -t deepdive-demo .      Run:  docker run --rm -p 8000:8000 -v deepdive-data:/data deepdive-demo
+# Build:  docker build -t deepdive-demo .      Run:  docker run --rm -p 8000:8000 deepdive-demo
+# The demo database is built from demo/ while the image is built (seed, update packages, schema upgrade, checks) and is owned by root: the server opens it
+# read-only and never creates, upgrades or changes a database at start-up.
 FROM node:22.11.0-slim AS web
 WORKDIR /build/frontend
 COPY frontend/package.json frontend/package-lock.json ./
@@ -16,12 +18,12 @@ RUN uv sync --frozen --no-dev --no-install-project --no-cache
 COPY backend ./backend
 COPY demo ./demo
 COPY --from=web /build/frontend/dist ./frontend/dist
+RUN python -m backend.demo_seed --build /app/demo-db/deepdive-demo.db && chmod 0444 /app/demo-db/deepdive-demo.db && chmod 0555 /app/demo-db
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh && useradd --system --uid 10001 --home-dir /app app && mkdir /data && chown app:app /data
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh && useradd --system --uid 10001 --home-dir /app app
 
 # No provider key is set or needed: the backend refuses every write, opens SQLite read-only and builds no model/search client.
-ENV PUBLIC_READ_ONLY=1 DATABASE_PATH=/data/deepdive.db PORT=8000
-VOLUME /data
+ENV PUBLIC_READ_ONLY=1 DATABASE_PATH=/app/demo-db/deepdive-demo.db PORT=8000
 EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 CMD python -c "import os,urllib.request;urllib.request.urlopen('http://127.0.0.1:%s/health'%os.environ.get('PORT','8000'),timeout=4)"
 ENTRYPOINT ["docker-entrypoint.sh"]

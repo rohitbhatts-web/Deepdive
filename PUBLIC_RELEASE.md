@@ -1,6 +1,8 @@
 # Public export: what is withheld, what is unchanged, what it means for the evaluation
 
-This repository is the **public export** of DeepDive, dataset variant **`public-export-v1`** (recorded in `evaluation/data/claim_evidence.json` under `public_export`).
+This repository is the **public export** of DeepDive. **Current release: the candidate of 28 Oct 2026** (database schema version 12; see "This release" at
+the end). The evaluation dataset variant is **`public-export-v1`** (recorded in `evaluation/data/claim_evidence.json` under `public_export`) and is unchanged
+in this release.
 It was derived from a private working repository that holds the full evidence. Nothing was added to make up for what is withheld: there is no replacement evidence, no changed label, no changed claim text, no changed split.
 
 ## What is withheld
@@ -74,11 +76,68 @@ After withholding the claim text of CE04 and CE10, a scan of every tracked file 
 
 ## Hosted demo data
 
-The hosted recorded demo (`docs/HOSTING.md`) is seeded from `demo/seed.sql.gz`, a sanitized dump of two recorded runs. It is not a copy of a private run database: `scripts/build_demo_seed.py` inserts rows into a fresh database and, for every source outside an allow-list
-(Wikipedia, IETF RFCs, PostgreSQL documentation), replaces the page text, its passages, the quotes taken from it and its search snippets by a marker, keeping URL, title, retrieval date and content hash. The four rights-reserved evaluation sources are withheld there too.
-The development-check update `demo/updates/0002-a1a2-v5.json.gz` (a gzip JSON package, 4 KB) is sanitized the same way; its only text-bearing sources are two RFC 9113 passages. The seed and the package are gzip files, not `.db` files. Its text, and every GET response of the running demo, contain no phrase of six or more words from a withheld page (the remaining five-word overlap is a URL fragment).
+The hosted recorded demo (`docs/HOSTING.md`) is built from `demo/seed.sql.gz`, a sanitized dump of two recorded runs, and the update package
+`demo/updates/0002-a1a2-v5.json.gz` (a recorded development check). Neither is a copy of a private run database: `scripts/build_demo_seed.py` and
+`scripts/build_demo_update.py` insert rows into a fresh database and, for every source outside the cleared list (Wikipedia, IETF RFCs, PostgreSQL
+documentation), replace the page text, its passages, the quotes taken from it and its search snippets by a marker, keeping URL, title, retrieval date and
+content hash. The four rights-reserved evaluation sources are withheld there too. The package's only text-bearing sources are two RFC 9113 passages. The seed
+and the package are gzip files, not `.db` files. Their text, and every GET response of the running demo, contain no phrase of six or more words from a
+withheld page (the remaining five-word overlap is a URL fragment).
 
-## How this export was checked
+The cleared list is this project's publication policy for page text, not a legal determination. A visitor sees a withheld page's URL, title and date but
+cannot read its text or check a quote against it on the site.
 
-A scan of every tracked file for word runs shared with the nine original passages (run before publication) found no run of six words or more. The tree and its history contain no databases, logs, `.env` files, secrets or local absolute paths.
-The history is the initial commit plus one export commit on top of it; the private development history is not part of it.
+**The completed live run of 28 Oct 2026** (Git merge/rebase, described in the README) is **not** in this repository or in the demo data: all 8 of its
+sources are outside the cleared list. It is shown only in a locally recorded walkthrough made from a private copy of its database.
+
+## How the first export was checked
+
+A scan of every tracked file for word runs shared with the nine original passages (run before publication) found no run of six words or more. The tree and
+its history contained no databases, logs, `.env` files, secrets or local absolute paths.
+
+## This release (candidate of 28 Oct 2026)
+
+**What it contains.** The application code of the private working repository as of 28 Oct 2026, applied as one change on top of the previous public
+version (`f7d4a5a`); the private development history is not part of the public history. New since that version:
+- a request-budget policy that holds back the requests and time the final assessment needs (`docs/REQUEST_BUDGET_POLICY.md`);
+- a cross-claim consistency check with report and UI warnings (`docs/CROSS_CLAIM_CONSISTENCY.md`);
+- coverage bookkeeping fixes, fair drafting across subquestions, per-request transport diagnostics, a 90 s model-request deadline, and the Overview page
+  with its answer preview, evidence map and request charts;
+- database schema 9 to 12 (new tables only);
+- the hosted demo database is now **built offline** (`python -m backend.demo_seed --build`, run while the Docker image is built) and only ever opened
+  read-only; the server no longer creates or updates a database at start-up (`docs/HOSTING.md`). The demo's recorded content is unchanged.
+
+**What was changed or left out for publication.**
+- Test fixtures that matched text of uncleared web pages were replaced by synthetic wording that keeps each test's behaviour: the SQLite fixture paragraph
+  (`tests/seed.py` and the tests that quote it), the two conflicting rebase claims of the consistency tests (`tests/test_consistency_check.py`), and the
+  fixture pages of the offline acceptance test.
+- `docs/CROSS_CLAIM_CONSISTENCY.md` describes the observed conflicting claims in our own words instead of quoting them. In `docs/PHASE3_REVIEW.md` the
+  text of one recorded claim that closely restates a withheld page is withheld (as for CE04 and CE10), and a quotation from that page is described instead.
+  `scripts/live_verify.py` uses a four-word fragment instead of a full sentence of it.
+- Private engineering records (run investigations, diagnostics, submission drafts) and every run database stay in the private repository.
+
+**Residual overlap, stated plainly.** A scan of every tracked file for runs of six or more words shared with the stored text of every uncleared page fetched
+in the project's local run databases (40 databases) and with the nine withheld evaluation passages finds only short generic or structural runs: page
+titles (kept by policy), number sequences and code, URL fragments, and phrases such as "what are the main differences between", "host 127.0.0.1 port",
+"between HTTP/2 and HTTP/3", "both HTTP/1.1 and HTTP/2" (in recorded claims) and "merge commit that has two parents". These are kept.
+
+**Checks of this version** (28 Oct 2026, offline; no model, search or page fetch):
+- Backend: 810 tests passed, 8 skipped; Ruff clean; `python -m evaluation validate` reports no problems.
+- Frontend: typecheck, 97 tests and the production build pass. Local tooling tests (`node --test ...`): 21 passed.
+- Clean installation from an export of the staged tree (LF line endings, as a Linux checkout): `uv sync --frozen` (Python 3.12.13) and `npm ci`
+  (Node 22.11.0, 245 packages), then the same suites with the same results; `python -m backend.demo_seed --build` produced schema 12 with 3 runs;
+  `backend.public` started read-only on it and the 24 HTTP smoke checks passed (`scripts/smoke_hosted_demo.mjs`).
+- Docker (Docker Desktop 29.7.2, Linux engine): the image builds from that export and builds the demo database (schema 12, 3 runs). Run as `render.yaml`
+  configures it, with a disk at `/data` holding a database made by the previous version's own code (seed, then update 0002 at start-up): the container
+  becomes healthy, the server runs as uid 10001, `/ready` is `{"status": "ready", "runs": 3}`, the 24 smoke checks pass, POSTs to start research, complete
+  or retry return 403, `mesh_configured` is false and no key variable is set. As uid 10001 the database file and its folder cannot be written
+  ("Permission denied", "attempt to write a readonly database"). The served file and the `/data` database were byte-identical afterwards. The only database
+  in the image is the built one; no `.env` is in it.
+- Misconfiguration: the new image pointed at the previous version's schema-8 file refuses to start ("older schema ... read-only mode cannot upgrade it")
+  and leaves the file unchanged.
+- Rollback: an image of the previous version (`f7d4a5a`), started on a copy of that disk with its own `DATABASE_PATH`, became healthy, served 3 runs and
+  passed its 24 smoke checks, and left the database unchanged.
+- An upgraded copy of the previous version's disk database holds exactly the same rows and ids as a fresh build (all 38 tables).
+- Staged files were reviewed for secrets, local absolute paths, email addresses, request ids, databases and logs: none found.
+
+Not checked: Render itself, any deployment of this version, behaviour behind Render's proxy and TLS, and load.

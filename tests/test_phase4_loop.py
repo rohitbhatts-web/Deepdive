@@ -26,7 +26,7 @@ from tests.seed import PARAS, Q0
 
 RELEASE = "Version 3.45 was released in January 2024 according to the official release notes."
 MANUAL = "The PostgreSQL manual states that readers do not block writers under multiversion concurrency control."
-B_NEW = "The SQLite database is a single file on disk."
+B_NEW = "Each SQLite database is kept in one ordinary file."
 C_NEW = "Postgres can handle hundreds of concurrent clients, though results may vary."
 N1 = "Version 3.45 was released in January 2024."
 N2 = "Readers do not block writers under multiversion concurrency control."
@@ -86,7 +86,7 @@ def test_failed_verification_routes_back_to_research_repairs_and_a_report_from_c
 
     # the actual graph loop, in order: coverage, repairs, targeted research, drafting from new evidence, re-verification
     assert mesh.steps() == ["coverage", "revise", "revise", "queries", "select", "queries", "select", "draft",
-                            "verify", "verify", "verify", "verify", "coverage", "synth"]
+                            "verify", "verify", "verify", "verify", "coverage", "consistency", "synth"]
     events = [e["event_type"] for e in client.get("/runs/1/events").json()]
     loop = [e for e in events if e in ("coverage_assessed", "coverage_routed", "correction_round_started", "claim_revised",
                                        "correction_round_finished", "claims_reverified", "report_created", "completion_finished")]
@@ -194,13 +194,13 @@ def test_two_corrective_rounds_then_the_loop_stops_because_rounds_are_exhausted(
     client.post("/runs/1/complete")
     done = client.get("/runs/1/completion").json()
     assert done["corrective_rounds"] == 2 and done["complete_status"] == "completed"
-    assert done["stop_reason"] == "corrective rounds exhausted (2)"
-    assert mesh.steps().count("coverage") == 3  # initial + after each of the two corrective rounds
+    # Round 2 searched and found a source but drafted no claim from it: the claims coverage judges did not change, so a third assessment would only repeat
+    # the second (and spend a request): the loop ends there and the round-1 assessment stands.
+    assert done["stop_reason"].startswith("no progress: this correction round changed no claim")
+    assert mesh.steps().count("coverage") == 2  # initial + after corrective round 1 (round 2 changed nothing to re-assess)
     rounds = client.get("/runs/1/corrections").json()["rounds"]
     assert [rnd["corrective_round"] for rnd in rounds if rnd["executed"]] == [1, 2]
-    last = rounds[-1]  # planned by the final assessment, never run: recorded as skipped with the stop reason
-    assert not last["executed"] and all(t["status"] == "skipped" for t in last["tasks"])
-    assert all("corrective rounds exhausted (2)" in t["outcome"]["reason"] for t in last["tasks"])
+    assert all(rnd["executed"] for rnd in rounds)  # no further round was planned
     reasons = {e["claim_id"]: e["reason"] for e in client.get("/runs/1/corrections").json()["exclusions"]}
     assert reasons[2].startswith("abandoned by the Reviser") and reasons[3].startswith("abandoned by the Reviser")
     rep = client.get("/runs/1/report").json()
@@ -240,7 +240,7 @@ def test_no_progress_is_detected_and_the_unchanged_search_is_not_repeated(client
     client.post("/runs/1/complete")
     done = client.get("/runs/1/completion").json()
     assert done["stop_reason"].startswith("no progress") and done["corrective_rounds"] == 1
-    assert mesh.steps().count("coverage") == 2 and srch.queries == [Q_REL]  # one search, never repeated
+    assert mesh.steps().count("coverage") == 1 and srch.queries == [Q_REL]  # one search, never repeated; the unchanged claims are not re-assessed
     assert r["run"] == 1
 
 
@@ -289,7 +289,7 @@ def test_the_budget_is_cumulative_across_nodes_and_rounds_and_reserves_room_for_
                  ("Q2.R1", "addressed", [7], "", "none"))],
         verify=[verdict("supported", used=[r["p"](0)]), verdict("supported", used=[r["p"](2)])])
     run_complete(client, complete_env, mesh, max_model_requests=9)
-    assert len(mesh.calls) == 9  # coverage, 2 revisions, 1 search task (2), 2 re-verifications, coverage, synthesis
+    assert len(mesh.calls) == 9  # coverage, 2 revisions, 1 search task (2), 2 re-verifications, coverage, then ONE request left for report-time work
     done = client.get("/runs/1/completion").json()
     assert done["budget_used_of_limit"]["model_requests"] == [9, 9] and done["budget_used_of_limit"]["search_queries"] == [1, 8]
     tasks = {(t["kind"], t["requirement_key"]): t for t in client.get("/runs/1/corrections").json()["rounds"][0]["tasks"]}
@@ -298,7 +298,12 @@ def test_the_budget_is_cumulative_across_nodes_and_rounds_and_reserves_room_for_
     assert skipped["status"] == "skipped" and "reserving" in skipped["outcome"]["reason"]
     events = {e["event_type"]: e["payload"] for e in client.get("/runs/1/events").json()}
     assert "reserving" in events["drafting_skipped"]["reason"]
-    assert client.get("/runs/1/report").json()["ordering"] == "model"  # the reserve kept the synthesis possible
+    # RESERVE stays 2 (the final coverage + one more). That one request goes to the cross-claim consistency check, which bears on honesty; synthesis only orders claims
+    # and has a deterministic fallback, so it is the one displaced. The claims reported are unchanged.
+    assert mesh.steps()[-1] == "consistency"
+    rep = client.get("/runs/1/report").json()
+    assert rep["ordering"] == "deterministic" and "max_model_requests reached (9)" in rep["ordering_reason"]
+    assert [it["claim_id"] for s in rep["sections"] for it in s["claims"]] == [1, 6, 7]
 
 
 @pytest.mark.parametrize("cap,where", [(0, "coverage"), (1, "after the first assessment"), (2, "after the first assessment")])
@@ -310,7 +315,10 @@ def test_budget_exhaustion_stops_the_run_and_still_produces_an_honest_report(cli
     assert done["complete_status"] == "stopped" and done["stop_reason"]
     assert len(mesh.calls) <= cap  # failed or refused requests are never over-spent
     rep = client.get("/runs/1/report").json()
-    assert rep["ordering"] == "deterministic" and "synthesizer not called" in (rep["ordering_reason"] or "")
+    if cap < 2:  # nothing left for the optional synthesis: deterministic ordering, and the report says why
+        assert rep["ordering"] == "deterministic" and "synthesizer not called" in (rep["ordering_reason"] or "")
+    else:  # the loop stopped on its budget check with one request still free: synthesis uses it instead of leaving it unspent
+        assert rep["ordering"] == "model" and mesh.steps() == ["coverage", "synth"]
     assert rep["stop_reason"] == done["stop_reason"]
     assert [it["claim_id"] for s in rep["sections"] for it in s["claims"]] == [1]  # only the current eligible claim
     if cap == 0:
@@ -323,7 +331,7 @@ def test_retries_and_failed_requests_count_against_the_same_budget(client, compl
     run_complete(client, complete_env, mesh, max_model_requests=12)
     used = client.get("/runs/1/completion").json()["budget_used_of_limit"]["model_requests"]
     calls = client.get("/runs/1/model-calls").json()
-    assert used[0] == len([c for c in calls if c["agent"] in ("coverage", "reviser", "researcher", "verifier", "drafter", "synthesizer")]) <= 12
+    assert used[0] == len([c for c in calls if c["agent"] in ("coverage", "reviser", "researcher", "verifier", "drafter", "synthesizer", "consistency")]) <= 12
     assert any(c["agent"] == "reviser" and not c["ok"] for c in calls)  # the invalid reply and the failed call were charged
     tasks = client.get("/runs/1/corrections").json()["rounds"][0]["tasks"]
     assert any(t["kind"] == "claim_repair" and t["status"] == "failed" for t in tasks)  # a failed task does not fake success
@@ -509,7 +517,7 @@ def test_every_requirement_stays_visible_in_the_report_and_old_reports_never_cha
 
 
 def test_end_to_end_option_uses_one_budget_for_collection_verification_correction_and_report(client, complete_env, web):
-    page = "SQLite is a C library embedded directly in the application process. The database is a single file on disk."
+    page = "SQLite runs as a library inside the process of the calling program. Each database is kept in one ordinary file."
     web.html(A, f"<html><head><title>Guide</title></head><body><p>{page}</p></body></html>")
     from tests.fakes import obligations, plan
 
@@ -517,8 +525,8 @@ def test_end_to_end_option_uses_one_budget_for_collection_verification_correctio
         planner=plan(("How is SQLite deployed and used?", ["deployment model"])), queries=queries("sqlite deployment model"),
         obligations=obligations(Q1_R1=[("SQLite", "deployment model")]),
         select=select(A),
-        draft=draft(claim(1, "SQLite is a C library embedded directly in the application process.",
-                          ("S1-P0", "SQLite is a C library embedded directly in the application process."))),
+        draft=draft(claim(1, "SQLite runs as a library inside the process of the calling program.",
+                          ("S1-P0", "SQLite runs as a library inside the process of the calling program."))),
         verify=verdict("supported", used=["S1-P0"]),
         coverage=coverage(("Q1.R1", "addressed", [1], "", "none")), synth=synth((1, [1])))
     complete_env(mesh, FakeSearch({"sqlite deployment model": [(A, "Guide", "s")]}))

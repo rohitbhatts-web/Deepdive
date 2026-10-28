@@ -73,6 +73,12 @@ def plan_problems(question: str, plan: Plan) -> list[str]:
     return problems
 
 
+def rejection_payload(plan: Plan, problems: list[str], attempt: int) -> dict:
+    """What a `plan_rejected` event records: the validation problems and the PARSED plan that was rejected (its asks and subquestions, exactly as the model
+    returned them after schema validation), so a rejection can be examined and replayed offline. Nothing from the request, the client or the settings."""
+    return {"attempt": attempt, "problems": problems, "rejected_plan": plan.model_dump(mode="json")}
+
+
 def run_planner(
     conn: sqlite3.Connection, llm: LLM, budget: Budget, settings: Settings, run: dict
 ) -> list[int]:
@@ -81,11 +87,12 @@ def run_planner(
     plan = llm.call(conn, run["id"], budget, agent="planner", model=settings.planner_model, system=SYSTEM, user=ask, schema=Plan, example=EXAMPLE)
     problems = plan_problems(run["question"], plan)
     if problems:  # one repair attempt (a budgeted request); a plan that still drops part of the question is not used
-        db.add_event(conn, run["id"], "plan_rejected", "planner", {"problems": problems})
+        db.add_event(conn, run["id"], "plan_rejected", "planner", rejection_payload(plan, problems, 1))
         plan = llm.call(conn, run["id"], budget, agent="planner", model=settings.planner_model, system=SYSTEM, schema=Plan, example=EXAMPLE,
                         user=ask + "\nYour previous plan was rejected:\n" + "\n".join(f"- {p}" for p in problems) + "\nReturn a corrected plan.")
         problems = plan_problems(run["question"], plan)
         if problems:
+            db.add_event(conn, run["id"], "plan_rejected", "planner", rejection_payload(plan, problems, 2))  # the repair failed too: keep that plan as well
             raise AgentOutputError("planner: the plan still does not cover the whole question: " + "; ".join(problems))
     if len(plan.subquestions) > settings.max_subquestions:
         dropped = {c for sq in plan.subquestions[settings.max_subquestions:] for c in sq.covers}
@@ -98,7 +105,7 @@ def run_planner(
         db.add_event(conn, run["id"], "plan_created", "planner", {
             "asks": [{"quote": a.quote, "label": a.label} for a in plan.asks],
             "subquestions": [
-                {"id": i, "question": sq.question, "rationale": sq.rationale} for i, sq in zip(ids, chosen, strict=True)
+                {"id": i, "question": sq.question, "rationale": sq.rationale, "covers": list(sq.covers)} for i, sq in zip(ids, chosen, strict=True)
             ],
             "truncated_from": len(plan.subquestions) if len(plan.subquestions) > len(chosen) else None,
         })

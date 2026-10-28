@@ -65,7 +65,7 @@ def test_full_flow_persists_everything(client, research):
 
     # actual usage: 1 planner + 2 per subquestion = 5 fixture calls of (100, 20, 120) tokens
     assert mesh.steps() == ["planner", "queries", "select", "queries", "select"]
-    assert status["model_usage"] == {"model_calls": 5, "failed_calls": 0, "prompt_tokens": 500,
+    assert status["model_usage"] == {"model_calls": 5, "failed_calls": 0, "calls_with_usage": 5, "prompt_tokens": 500,
                                      "completion_tokens": 100, "total_tokens": 600}
     calls = client.get(f"/runs/{run_id}/model-calls").json()
     assert [c["agent"] for c in calls] == ["planner", "researcher", "researcher", "researcher", "researcher"]
