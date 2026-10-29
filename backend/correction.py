@@ -211,16 +211,29 @@ def _stem(word: str) -> str:
 _GLUE = frozenset({"the", "and", "for", "are", "was", "were", "with", "from", "into", "over", "per", "via", "its", "their", "this", "that", "these", "those"})
 
 
-def shared_subject_stems(subjects: list[str]) -> set[str]:
-    """Stems of the identifying words that EVERY distinct subject of a run contains (a run-wide qualifier such as the product all of them are about).
-    Such a word cannot tell one subject from another, so a claim that names the subject without repeating it is not penalised for the omission.
-    Empty unless there are at least two distinct subjects, and empty when the shared words are themselves the whole of some subject (then they DO identify it)."""
+def shared_subject_stems(subjects: list[str], plan_texts: list[str] | tuple[str, ...] = ()) -> set[str]:
+    """Stems of the identifying words that cannot tell one subject of a run from another (a run-wide qualifier such as the product all of them are about).
+    A claim that names the subject without repeating such a word is not penalised for the omission. Two signals, either is enough:
+
+    * EVERY distinct subject contains the word; or
+    * (when `plan_texts` is given: the run's question followed by its subquestions) the question and EVERY subquestion contain it, and some subject does. The
+      subjects are written by a model, one requirement at a time, and need not all repeat the topic word: a stored run's "Python lists" and "Python tuples" did,
+      its "list elements", "tuple elements" and "lists and tuples" did not, so the first rule found nothing and a supported claim that said "lists" and "tuples"
+      was not credited for lacking "Python". The plan's own questions all say it, so it identifies nothing within this run.
+
+    Empty unless there are at least two distinct subjects (and, for the second signal, at least two subquestions), and empty when the shared words are
+    themselves the whole of some subject (then they DO identify it)."""
     distinct = {s.strip().lower() for s in subjects if s.strip()}
     if len(distinct) < 2:
         return set()
     per_subject = [{_stem(w) for w in _subject_words(s)} for s in distinct]
     shared = set.intersection(*per_subject)
-    return set() if any(words <= shared for words in per_subject) else shared
+    universal = set() if any(words <= shared for words in per_subject) else shared
+    if len(plan_texts) < 3:  # the question and at least two subquestions: one subquestion proves nothing about a plan
+        return universal
+    plan_wide = set.intersection(*({_stem(w) for w in _subject_words(t)} for t in plan_texts)) & set.union(*per_subject)
+    merged = universal | plan_wide
+    return universal if any(words <= merged for words in per_subject) else merged
 
 
 def _subject_words(subject: str) -> list[str]:

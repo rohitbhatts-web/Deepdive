@@ -22,6 +22,13 @@ changed since the previous public version, and how it was checked: [PUBLIC_RELEA
   claim that carried that exception was excluded as only partly supported); and the consistency check saw one claim's evidence shortened. This is one run,
   not evidence of general reliability or accuracy. Its sources are not on the cleared list, so its evidence is **not** published here or in the hosted demo;
   it is shown in a locally recorded walkthrough.
+- **A second live run** (28 Oct 2026, the same code) for a question on Python lists and tuples completed with open requirements: 20 of 20 model requests,
+  about 165 s; of nine generated requirements 5 were assessed as addressed, 1 partly and 3 left open, all in the "when to use each" subquestion. A manual
+  reading afterwards (by the AI coding assistant, not an independent review): mutability was answered directly; the usage advice rests on one claim from
+  one source and is thin. Two deterministic defects found in its coverage stage were fixed afterwards (a lexical rule overrode the coverage model's credit for
+  a verified usage claim because the claim said "lists" and "tuples" but not "Python", and the resulting gap message wrongly said no claim was about the
+  subject). The fix was replayed offline on the run's stored judgments and is covered by synthetic regression tests (`tests/test_duplicate_ask_coverage.py`);
+  **no live run has exercised it**, and the stored report is unchanged. This run is not in the hosted demo or this repository.
 
 **Not demonstrated / limitations**
 - **Small and AI-assisted.** The labels are "AI-assisted human review; not independent or blinded". There are 12 reviewed examples from one domain (SQLite/PostgreSQL evidence) and two end-to-end questions; no held-out example has been run. Agreement with
@@ -35,6 +42,16 @@ changed since the previous public version, and how it was checked: [PUBLIC_RELEA
 - **Recorded, not live.** The hosted demo replays an older, cleared recorded dataset (21-22 Oct 2026), not the 28 Oct run, and starts no research.
 - **Cross-claim consistency is a model judgement.** A conflict the model does not flag stays unflagged; "no conflicts flagged" is not "consistent", and a
   check that saw shortened evidence says so. See `docs/CROSS_CLAIM_CONSISTENCY.md`.
+- **Two live runs on this code, not a reliability measure.** Other questions and repeated runs are untested.
+- **Requirement status is not answer adequacy.** The evidence requirements are the planner's own checklist, not the user's question; "all addressed" and
+  "some open" can each coexist with an adequate or an inadequate answer.
+- **A lexical check on claim wording has misfired in development.** The rule that a credited claim's own text must name the requirement's subject needed
+  three false-positive fixes over three development runs. That is development-case evidence (one reviewer), not a measurement of the rule's accuracy. A
+  graded scope check over the set of credited claims is future design work, not implemented.
+- **Claim qualifications are not enforced.** A claim can be supported by a quoted sentence while its source qualifies it elsewhere (Git's fast-forward case;
+  tuples holding mutable objects). Neither the verifier nor the consistency check (which compares claims, not passages) checks this.
+- **Plan allocation and passage selection are heuristics.** They can spend most subquestions on one part of the question and offer the drafter weaker
+  passages than were collected.
 - **Budget limits are tight.** One 20-request, 300 s job leaves little margin; a slow call can leave few verified claims, and the report then says what was
   not done or not assessed (`docs/REQUEST_BUDGET_POLICY.md`). Output tokens are checked before each call, so the last call can pass the 15,000-token total
   by up to its 1,500-token cap.

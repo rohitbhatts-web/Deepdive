@@ -105,7 +105,11 @@ version (`f7d4a5a`); the private development history is not part of the public h
   with its answer preview, evidence map and request charts;
 - database schema 9 to 12 (new tables only);
 - the hosted demo database is now **built offline** (`python -m backend.demo_seed --build`, run while the Docker image is built) and only ever opened
-  read-only; the server no longer creates or updates a database at start-up (`docs/HOSTING.md`). The demo's recorded content is unchanged.
+  read-only; the server no longer creates or updates a database at start-up (`docs/HOSTING.md`). The demo's recorded content is unchanged;
+- (added 29 Oct 2026) a coverage fix found by inspecting the second live run of 28 Oct (README): a word that the question and every subquestion contain is
+  treated as a plan-wide qualifier, so a verified claim is no longer refused credit for omitting it, and the gap message names the claim that was not credited
+  instead of saying no claim is about the subject. A claim naming neither structure is still refused. Synthetic regression tests in
+  `tests/test_duplicate_ask_coverage.py` (9 of its 10 fail without the fix). No live run has exercised it.
 
 **What was changed or left out for publication.**
 - Test fixtures that matched text of uncleared web pages were replaced by synthetic wording that keeps each test's behaviour: the SQLite fixture paragraph
@@ -119,7 +123,8 @@ version (`f7d4a5a`); the private development history is not part of the public h
 **Residual overlap, stated plainly.** A scan of every tracked file for runs of six or more words shared with the stored text of every uncleared page fetched
 in the project's local run databases (40 databases) and with the nine withheld evaluation passages finds only short generic or structural runs: page
 titles (kept by policy), number sequences and code, URL fragments, and phrases such as "what are the main differences between", "host 127.0.0.1 port",
-"between HTTP/2 and HTTP/3", "both HTTP/1.1 and HTTP/2" (in recorded claims) and "merge commit that has two parents". These are kept.
+"between HTTP/2 and HTTP/3", "both HTTP/1.1 and HTTP/2" (in recorded claims) and "merge commit that has two parents". The coverage-fix tests add one:
+two adjacent planner requirements, "lists are mutable" and "tuples are immutable". These are kept.
 
 **Checks of this version** (28 Oct 2026, offline; no model, search or page fetch):
 - Backend: 810 tests passed, 8 skipped; Ruff clean; `python -m evaluation validate` reports no problems.
@@ -139,5 +144,8 @@ titles (kept by policy), number sequences and code, URL fragments, and phrases s
   passed its 24 smoke checks, and left the database unchanged.
 - An upgraded copy of the previous version's disk database holds exactly the same rows and ids as a fresh build (all 38 tables).
 - Staged files were reviewed for secrets, local absolute paths, email addresses, request ids, databases and logs: none found.
+
+After the coverage fix was added (29 Oct 2026, offline): backend 820 passed, 8 skipped; Ruff clean; `python -m evaluation validate` reports no problems;
+frontend typecheck, 97 tests and build; tooling 21 passed; the overlap scan above repeated over every tracked file (44 local databases).
 
 Not checked: Render itself, any deployment of this version, behaviour behind Render's proxy and TLS, and load.

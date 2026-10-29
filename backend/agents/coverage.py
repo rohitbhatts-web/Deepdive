@@ -47,6 +47,15 @@ EXAMPLE = {"obligations": [{"obligation_key": "Q1.R1.O1", "status": "partially_a
 DIMENSION_NOT_IN_CLAIM = ("not credited as an answer: the claim's own text does not state what this asks for; the assessor's reason relies on wording "
                           "that appears only in the claim's evidence")
 SUBJECT_NOT_IN_CLAIM = "not credited as an answer: the claim's own text never names the subject this requirement is about"
+
+
+def subject_gap(subject: str, claim_ids: list[int]) -> str:
+    """The gap a requirement gets when the lexical subject backstop overrides an 'addressed' judgment. It names the claim(s) that were judged to answer it and
+    what became of them. The earlier wording, "no cited claim is about <subject>", denied that any claim related to the requirement while those very claims
+    were cited in the same report section as related context."""
+    ids = [str(i) for i in sorted(claim_ids)]
+    named = f"claim {ids[0]}" if len(ids) == 1 else "claims " + ", ".join(ids[:-1]) + f" and {ids[-1]}"
+    return f'not credited: {named} never name{"s" if len(ids) == 1 else ""} "{subject}", so {"it is" if len(ids) == 1 else "they are"} shown as related context, not as an answer'
 # (quote chars, passage chars) kept per evidence item, tried in order until every eligible claim fits the input budget; the last tier keeps only the
 # passage identity (the claim text and the cited passage IDs are never cut)
 _EVIDENCE_TIERS = ((200, 300), (120, 160), (60, 80), (0, 0))
@@ -139,7 +148,8 @@ def assess(conn: sqlite3.Connection, llm: LLM, budget: Budget, settings: Setting
         if trimmed:
             notes["evidence_shortened"] = trimmed  # shown to the assessor with shorter evidence text; distinct from claims_not_shown
 
-    shared_stems = correction.shared_subject_stems([o["subject"] for o in obls if o["origin"] == "derived"])
+    run_question = conn.execute("SELECT question FROM runs WHERE id = ?", (run_id,)).fetchone()[0]
+    shared_stems = correction.shared_subject_stems([o["subject"] for o in obls if o["origin"] == "derived"], [run_question, *sq_text.values()])
     with db.tx(conn):
         for r in reqs:
             items, parts, req_notes = [], [], {}
@@ -208,8 +218,8 @@ def assess(conn: sqlite3.Connection, llm: LLM, budget: Budget, settings: Setting
                         n.update(downgraded_from=status, subject_not_mentioned=o["subject"])
                         for cid in direct:  # the persisted roles must agree with the status the rule just set
                             roles[cid] = ("relevant_context", SUBJECT_NOT_IN_CLAIM, "rule")
+                        gap, kind = subject_gap(o["subject"], direct), "detail"
                         status, direct = "unresolved", []
-                        gap, kind = f"no cited claim is about {o['subject']}", "detail"
                     if revision_only and status != "unresolved" and set(direct) <= set(revision_only):
                         if status == "addressed":
                             n["downgraded_from"] = n.get("downgraded_from", "addressed")

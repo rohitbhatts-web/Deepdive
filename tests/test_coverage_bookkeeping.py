@@ -117,7 +117,7 @@ def test_the_report_does_not_show_a_claim_as_a_direct_answer_to_a_requirement_it
     rep = report(conn, w["run"])
     shown_as_direct = {c["claim_id"] for s in rep["sections"] for c in s["claims"]}
     assert w["ids"]["date2"] not in shown_as_direct
-    assert any("no cited claim is about" in g["gap"] for g in rep["unresolved_requirements"])
+    assert any("never names" in g["gap"] and f"claim {w['ids']['date2']}" in g["gap"] for g in rep["unresolved_requirements"])
 
 
 def test_a_claim_rejected_for_one_obligation_keeps_its_direct_role_for_another(conn, settings):

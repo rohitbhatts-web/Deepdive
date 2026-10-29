@@ -392,4 +392,5 @@ def test_an_answer_about_the_wrong_subject_is_still_rejected_by_the_backstop(con
     w = _derived_world(conn, settings, "the current revision of the HTTP/3 specification")  # the claim is about HTTP/2
     a = _assess_q1(conn, settings, w)
     assert a["status"] == "unresolved" and a["notes"]["subject_not_mentioned"] == "the current revision of the HTTP/3 specification"
-    assert a["supporting_claim_ids"] == [] and "no cited claim is about" in a["gap"]
+    assert a["supporting_claim_ids"] == []
+    assert a["gap"] == coverage.subject_gap("the current revision of the HTTP/3 specification", [w["ids"]["date2"]])  # names the claim, the subject and what became of it
