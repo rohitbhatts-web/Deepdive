@@ -303,3 +303,4 @@ Start with `docs/PLAN.md` (architecture), `docs/PHASE6A.md` (evaluation, failure
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 UI progress can be exercised without credits with `scripts/ui_sim_backend.py` (SIMULATED backend: real API and database code, scripted events, no model/search/fetch calls; see docs/PHASE5_REVIEW.md).
+
